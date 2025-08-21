@@ -1,0 +1,243 @@
+/* fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
+/* theme */
+:root {
+  --battleart-primary: #7B66FF;
+  --battleart-secondary: #5FBDFF;
+  --battleart-accent: #96EFFF;
+  --battleart-light: #C5FFF8;
+  --battleart-dark: #6B56EF;
+  --soft-purple: #B8A9FF;
+  --soft-gray: #6c757d;
+}
+
+/* typography */
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.brand-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 2.5rem;
+  letter-spacing: -1px;
+}
+
+.subtitle {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #6c757d;
+}
+
+/* background with gradient */
+body {
+  background: linear-gradient(135deg, var(--battleart-primary) 0%, var(--battleart-secondary) 50%, var(--battleart-accent) 100%);
+  min-height: 100vh;
+}
+
+/* card styling w/ glass effect */
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 40px rgba(123, 102, 255, 0.1), 
+              0 8px 16px rgba(123, 102, 255, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px rgba(123, 102, 255, 0.15), 
+              0 12px 24px rgba(123, 102, 255, 0.12);
+}
+
+/* form input styling */
+.form-control {
+  border-radius: 0.5rem;
+  border: 2px solid rgba(123, 102, 255, 0.15);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.form-control:focus {
+  border-color: var(--battleart-primary);
+  box-shadow: 0 0 0 0.2rem rgba(123, 102, 255, 0.15);
+  background-color: rgba(255, 255, 255, 1);
+  outline: none;
+}
+
+/* input group styling */
+.input-group-text {
+  background-color: rgba(197, 255, 248, 0.6);
+  border: 2px solid rgba(123, 102, 255, 0.15);
+  border-right: none;
+  border-radius: 0.5rem 0 0 0.5rem;
+  color: var(--soft-purple);
+  transition: all 0.3s ease;
+}
+
+.input-group .form-control {
+  border-left: none;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.input-group:focus-within .input-group-text {
+  border-color: var(--battleart-primary);
+  color: var(--battleart-primary);
+  background-color: rgba(197, 255, 248, 0.8);
+}
+
+/* button styling - brand purple gradient */
+.btn-primary {
+  background: linear-gradient(135deg, var(--battleart-primary) 0%, var(--battleart-dark) 100%);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--battleart-dark) 0%, #5A4BD9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(123, 102, 255, 0.3);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(123, 102, 255, 0.4);
+}
+
+.text-primary {
+  color: var(--battleart-primary) !important;
+}
+
+/* links styling */
+a {
+  color: var(--battleart-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: var(--battleart-dark);
+  text-decoration: underline;
+}
+
+/* forgot password link */
+.forgot-password-link {
+  color: var(--battleart-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.forgot-password-link:hover {
+  color: var(--battleart-dark);
+  text-decoration: underline;
+}
+
+/* sign up link */
+.signup-link {
+  color: var(--battleart-primary);
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.signup-link:hover {
+  color: var(--battleart-dark);
+  text-decoration: underline;
+}
+
+/* back to home link */
+.back-home-link {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.back-home-link:hover {
+  color: rgba(255, 255, 255, 1);
+  transform: translateX(-3px);
+  text-decoration: underline;
+}
+
+/*(Remember me checkbox) */
+.form-check-input {
+  border: 2px solid rgba(123, 102, 255, 0.3);
+  border-radius: 0.25rem;
+  transition: all 0.3s ease;
+}
+
+.form-check-input:checked {
+  background-color: var(--battleart-primary);
+  border-color: var(--battleart-primary);
+}
+
+.form-check-input:focus {
+  border-color: var(--battleart-primary);
+  box-shadow: 0 0 0 0.2rem rgba(123, 102, 255, 0.15);
+  outline: none;
+}
+
+.form-check-label {
+  color: #495057;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* form labels */
+.form-label {
+  color: #495057;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+/* mobile responsiveness */
+@media (max-width: 576px) {
+  .brand-title {
+    font-size: 2rem;
+  }
+  
+  .card-body {
+    padding: 2rem !important;
+  }
+  
+  .btn-primary {
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .card-body {
+    padding: 1.5rem !important;
+  }
+  
+  .brand-title {
+    font-size: 1.8rem;
+  }
+}
