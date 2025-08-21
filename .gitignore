@@ -1,0 +1,10 @@
+# Ignore Visual Studio IDE junk
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Ignore system files
+.DS_Store
+Thumbs.db
