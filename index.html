@@ -4,152 +4,291 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BattleArt</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS for colors and specific layout adjustments -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Define custom CSS variables for colors */
         :root {
-            --primary-bg: #8c76ec; /* Purple for top bar */
-            --secondary-bg: #a6e7ff; /* Light blue for main content */
-            --light-purple: #c3b4fc; /* Lighter purple for buttons */
-            --dark-purple-border: #7b68ee; /* Darker purple for border/line */
+            --primary-bg: #8c76ec;
+            --secondary-bg: #a6e7ff;
+            --light-purple: #c3b4fc;
+            --dark-purple-border: #7b68ee;
+            --text-dark: #333;
         }
 
         body {
-            background-color: var(--secondary-bg); /* Set overall background to light blue */
-            font-family: 'Inter', sans-serif; /* Use Inter font */
+            background-color: var(--secondary-bg);
+            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
+            color: var(--text-dark);
         }
 
-        /* Top navigation bar styling */
         .navbar-custom {
-            background-color: var(--primary-bg); /* Purple background */
-            padding: 1rem 1.5rem; /* Padding for the navbar */
-            border-bottom-left-radius: 20px; /* Rounded bottom-left corner */
-            border-bottom-right-radius: 20px; /* Rounded bottom-right corner */
+            background-color: var(--primary-bg);
+            padding: 1rem 1.5rem;
         }
 
         .navbar-brand-text {
-            color: #fff; /* White color for brand text */
+            color: #fff;
             font-weight: bold;
         }
 
         .nav-link-custom {
-            color: #fff; /* White color for nav links */
+            color: #fff;
             font-weight: 500;
         }
 
-        /* BattleArt title styling */
-        .battleart-title {
-            color: var(--primary-bg); /* Purple color for title */
-            font-size: 2.5rem; /* Larger font size */
-            font-weight: bold;
-            text-align: center;
-            margin-top: 3rem; /* Space from top */
-            margin-bottom: 2rem; /* Space below title */
+
+        .main-banner-area {
+            background-image: url('https://img.freepik.com/free-photo/anime-night-sky-illustration_23-2151684356.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: #fff;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 5px solid var(--dark-purple-border);
+            margin-bottom: 2rem;
         }
 
-        /* Search bar container styling */
+
+        .battleart-title {
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-size: 4rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 3rem;
+            margin-bottom: 2rem;
+        }
+
+
         .search-container {
             display: flex;
             justify-content: center;
-            margin-bottom: 4rem; /* Space below search bar */
+            margin-bottom: 4rem;
         }
 
         .search-input-group {
-            width: 80%; /* Width of the search input group */
-            max-width: 600px; /* Max width for larger screens */
+            width: 80%;
+            max-width: 600px;
         }
 
         .search-input {
-            border-radius: 50px; /* Fully rounded input */
-            padding: 0.75rem 1.5rem; /* Padding inside the input */
-            border: 1px solid #ced4da; /* Light gray border */
-            box-shadow: none; /* No default shadow */
+            border-radius: 50px;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #ced4da;
+            box-shadow: none;
         }
 
             .search-input:focus {
-                border-color: var(--primary-bg); /* Border color on focus */
-                box-shadow: 0 0 0 0.25rem rgba(140, 118, 236, 0.25); /* Light purple glow on focus */
+                border-color: var(--primary-bg);
+                box-shadow: 0 0 0 0.25rem rgba(140, 118, 236, 0.25);
             }
 
         .search-icon-btn {
-            background-color: #fff; /* White background for button */
-            border: 1px solid #ced4da; /* Light gray border */
-            border-left: none; /* No left border to blend with input */
-            border-top-right-radius: 50px; /* Rounded right corners */
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-left: none;
+            border-top-right-radius: 50px;
             border-bottom-right-radius: 50px;
-            color: #6c757d; /* Gray icon color */
+            color: #6c757d;
             padding: 0.75rem 1rem;
         }
 
-        /* Trending section styling */
-        .trending-title {
-            color: var(--primary-bg); /* Purple color for title */
-            font-size: 2rem; /* Font size for trending title */
+
+        .trending-title, .features-title {
+            color: var(--primary-bg);
+            font-size: 2rem;
             font-weight: bold;
             text-align: center;
-            margin-bottom: 2rem; /* Space below trending title */
+            margin-bottom: 2rem;
         }
 
-        /* Card styling */
-        .placeholder-card {
-            background-color: #fff; /* White background */
-            border-radius: 15px; /* Rounded corners */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-            height: 200px; /* Fixed height for placeholder */
+        .placeholder-card, .feature-card {
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #6c757d; /* Gray text for placeholder */
+            color: #6c757d;
             font-weight: bold;
-            margin-bottom: 1.5rem; /* Space between cards */
+            margin-bottom: 1.5rem;
+            text-align: center;
+            flex-direction: column;
         }
 
-        /* Horizontal line styling at the bottom */
+        .placeholder-card {
+            padding: 1rem;
+            min-height: 420px;
+        }
+
+        .feature-card {
+            padding: 1.5rem;
+            min-height: 200px;
+        }
+
+            .feature-card h5 {
+                color: var(--primary-bg);
+                margin-bottom: 0.75rem;
+                font-weight: bold;
+            }
+
+            .feature-card p {
+                font-size: 0.95rem;
+                color: #555;
+            }
+
+        .trending-card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .trending-card-image {
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+        }
+
+        .trending-card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .social-item {
+            display: flex;
+            align-items: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .social-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 0.3rem;
+        }
+
+        .btn-challenge-custom {
+            background-color: var(--primary-bg);
+            border: none;
+            color: #fff;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            margin-top: auto;
+        }
+
+            .btn-challenge-custom:hover {
+                background-color: var(--dark-purple-border);
+                color: #fff;
+            }
+
+
+
         .bottom-line {
-            height: 5px; /* Thickness of the line */
-            background-color: var(--dark-purple-border); /* Dark purple color */
-            width: 90%; /* Width of the line */
-            margin: 4rem auto 2rem auto; /* Centered with top and bottom margin */
-            border-radius: 5px; /* Slightly rounded ends */
+            height: 5px;
+            background-color: var(--dark-purple-border);
+            width: 90%;
+            margin: 4rem auto 2rem auto;
+            border-radius: 5px;
         }
 
-        /* Sign up and Log in buttons */
+        .btn-signup-custom, .btn-login-custom, .btn-primary-custom {
+            background-color: var(--light-purple);
+            border: none;
+            color: #fff;
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+            .btn-signup-custom:hover, .btn-login-custom:hover, .btn-primary-custom:hover {
+                background-color: #9d83f1;
+                color: #fff;
+            }
+
         .btn-signup-custom {
-            background-color: var(--light-purple); /* Lighter purple background */
-            border: none;
-            color: #fff;
-            padding: 0.5rem 1.25rem;
-            border-radius: 20px; /* Rounded pill shape */
-            font-weight: 500;
-            margin-right: 0.5rem; /* Space between buttons */
-            transition: background-color 0.2s ease;
+            margin-right: 0.5rem;
         }
 
-            .btn-signup-custom:hover {
-                background-color: #9d83f1; /* Slightly darker purple on hover */
+        .hero-section {
+            background-color: transparent;
+            color: #fff;
+            padding: 5rem 1rem 0;
+            text-align: center;
+            margin-top: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+            .hero-section h1 {
+                font-size: 3.5rem;
+                font-weight: bold;
+                margin-bottom: 1rem;
                 color: #fff;
             }
 
-        .btn-login-custom {
-            background-color: var(--light-purple); /* Lighter purple background */
-            border: none;
-            color: #fff;
-            padding: 0.5rem 1.25rem;
-            border-radius: 20px; /* Rounded pill shape */
-            font-weight: 500;
-            transition: background-color 0.2s ease;
-        }
-
-            .btn-login-custom:hover {
-                background-color: #9d83f1; /* Slightly darker purple on hover */
+            .hero-section p {
+                font-size: 1.25rem;
+                margin-bottom: 2rem;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
                 color: #fff;
             }
 
-        /* Adjustments for smaller screens */
+
+        .footer-custom {
+            background-color: var(--primary-bg);
+            color: #fff;
+            padding: 2rem 1rem;
+            text-align: center;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            margin-top: 4rem;
+        }
+
+            .footer-custom p {
+                margin-bottom: 0.5rem;
+            }
+
+            .footer-custom a {
+                color: #fff;
+                text-decoration: none;
+                margin: 0 0.5rem;
+                transition: text-decoration 0.2s ease;
+            }
+
+                .footer-custom a:hover {
+                    text-decoration: underline;
+                }
+
+        .search-section-bg {
+            background-color: transparent;
+            padding-bottom: 2rem;
+            margin-bottom: 0;
+            padding-top: 0;
+        }
+
+
         @media (max-width: 767.98px) {
             .navbar-custom {
                 padding: 0.75rem 1rem;
@@ -162,7 +301,7 @@
             .navbar-nav .btn {
                 margin-top: 0.5rem;
                 margin-left: 0;
-                width: 100%; /* Full width for buttons on small screens */
+                width: 100%;
             }
 
             .battleart-title {
@@ -175,39 +314,52 @@
                 width: 95%;
             }
 
-            .trending-title {
+            .trending-title, .features-title {
                 font-size: 1.75rem;
                 margin-bottom: 1.5rem;
             }
 
-            .placeholder-card {
-                height: 150px; /* Smaller height for cards on small screens */
+            .placeholder-card, .feature-card {
+                height: auto;
+                min-height: 150px;
+            }
+
+            .hero-section {
+                padding: 3rem 1rem 0;
+            }
+
+                .hero-section h1 {
+                    font-size: 2.5rem;
+                }
+
+                .hero-section p {
+                    font-size: 1rem;
+                }
+
+            .search-section-bg {
+                padding-bottom: 1.5rem;
+                margin-bottom: 0;
+            }
+
+            .main-banner-area {
+                padding-bottom: 1.5rem;
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- Bootstrap 5 Navbar -->
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
-            <!-- Left aligned icon -->
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#fff" class="bi bi-house-door-fill me-2" viewBox="0 0 16 16">
-                    <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.505L13 14.5V2l-2-1H5L3 2v12.5zm-1-.5V7.207l-2-2V14h4z" />
-                    <path d="M2.5 14.5V7.207l-2-2L0 7.5l.707.707L2 9.586V14.5h-.5zm11-.5v-7.293l2-2L16 7.5l-.707.707L14 9.586V14.5h-.5z" />
-                </svg>
+                <img src="https://img.icons8.com/?size=100&id=2797&format=png&color=000000k" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
                 <span class="navbar-brand-text"></span>
             </a>
-            <!-- Toggler for mobile -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#fff" class="bi bi-list" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-                    </svg>
+                    <img src="https://img.icons8.com/?size=100&id=36389&format=png&color=000000" alt="Menu Icon" style="width: 24px; height: 24px;">
                 </span>
             </button>
-            <!-- Right aligned buttons -->
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item me-2 me-lg-0">
@@ -221,46 +373,167 @@
         </div>
     </nav>
 
-    <div class="container">
-        <!-- BattleArt Title -->
-        <h1 class="battleart-title">BattleArt</h1>
-
-        <!-- Search Bar -->
-        <div class="search-container">
-            <div class="input-group search-input-group">
-                <input type="text" class="form-control search-input" placeholder="Search..." aria-label="Search">
-                <button class="btn search-icon-btn" type="button" id="button-addon2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-                    </svg>
-                </button>
+    <div class="main-banner-area">
+        <header class="hero-section">
+            <div class="container">
+                <h1>Unleash Your Creative Power!</h1>
+                <p>Discover, create, and share your unique digital art with a vibrant community. Join BattleArt today and turn your imagination into stunning masterpieces.</p>
+                <button class="btn btn-primary-custom">Start Creating Now</button>
             </div>
-        </div>
+        </header>
+        <section class="search-section-bg">
+            <div class="container">
+                <h1 class="battleart-title">BattleArt</h1>
 
-        <!-- Trending Section Title -->
+                <div class="search-container">
+                    <div class="input-group search-input-group">
+                        <input type="text" class="form-control search-input" placeholder="Search..." aria-label="Search">
+                        <button class="btn search-icon-btn" type="button" id="button-addon2">
+                            <img src="https://img.icons8.com/?size=100&id=DZe3wFKTc8IK&format=png&color=000000" alt="Search Icon" style="width: 16px; height: 16px;">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="container">
         <h2 class="trending-title">TRENDING</h2>
 
-        <!-- Cards Grid -->
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 justify-content-center">
             <div class="col">
-                <div class="placeholder-card"></div>
+                <div class="placeholder-card">
+                    <div class="trending-card-content">
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAjtGsiWKO9d3IVaSxBrVfRWIOk-Z1parRCQ&s" alt="Trending Art 1" class="trending-card-image">
+                        <h5 class="trending-card-title">Potential Man</h5>
+                        <div class="social-icons">
+                            <div class="social-item">
+                                <i class="fas fa-heart social-icon"></i>
+                                <span>1.2K</span>
+                            </div>
+                            <div class="social-item">
+                                <i class="fas fa-comment social-icon"></i>
+                                <span>250</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-challenge-custom">Challenge!</button>
+                    </div>
+                </div>
             </div>
             <div class="col">
-                <div class="placeholder-card"></div>
+                <div class="placeholder-card">
+                    <div class="trending-card-content">
+                        <img src="https://media.discordapp.net/attachments/755097619281346741/831212316406055012/Untitled14_20210413005913.png?ex=68a7f98b&is=68a6a80b&hm=497fc6df83f11dad378dd4c675b0b8f04d179ae9dd8f4922c27a57184aa2dd6a&=&format=webp&quality=lossless" alt="Trending Art 2" class="trending-card-image">
+                        <h5 class="trending-card-title">Yamino-Onoki</h5>
+                        <div class="social-icons">
+                            <div class="social-item">
+                                <i class="fas fa-heart social-icon"></i>
+                                <span>980</span>
+                            </div>
+                            <div class="social-item">
+                                <i class="fas fa-comment social-icon"></i>
+                                <span>180</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-challenge-custom">Challenge!</button>
+                    </div>
+                </div>
             </div>
             <div class="col">
-                <div class="placeholder-card"></div>
+                <div class="placeholder-card">
+                    <div class="trending-card-content">
+                        <img src="https://media.discordapp.net/attachments/755097619281346741/1407966699927502971/something.jpg?ex=68a806ac&is=68a6b52c&hm=a87456374a2945bb9d293c7b1fad0cd53fcf191adab7b6954f8a4e6dda720c0a&=&format=webp" alt="Trending Art 3" class="trending-card-image">
+                        <h5 class="trending-card-title">Akun Utaro</h5>
+                        <div class="social-icons">
+                            <div class="social-item">
+                                <i class="fas fa-heart social-icon"></i>
+                                <span>1.5K</span>
+                            </div>
+                            <div class="social-item">
+                                <i class="fas fa-comment social-icon"></i>
+                                <span>300</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-challenge-custom">Challenge!</button>
+                    </div>
+                </div>
             </div>
             <div class="col">
-                <div class="placeholder-card"></div>
+                <div class="placeholder-card">
+                    <div class="trending-card-content">
+                        <img src="https://media.discordapp.net/attachments/755097619281346741/1407966834350620713/Aisha.JPG?ex=68a806cc&is=68a6b54c&hm=5e1a502f3d8c31bcf07357d4191ae5070ed86dc0e945230e3b7b27ec53c64015&=&format=webp" alt="Trending Art 4" class="trending-card-image">
+                        <h5 class="trending-card-title">Aisha Athens</h5>
+                        <div class="social-icons">
+                            <div class="social-item">
+                                <i class="fas fa-heart social-icon"></i>
+                                <span>850</span>
+                            </div>
+                            <div class="social-item">
+                                <i class="fas fa-comment social-icon"></i>
+                                <span>120</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-challenge-custom">Challenge!</button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Bottom Line -->
+        <hr class="my-5 border-2 border-primary-bg opacity-75">
+        <h2 class="features-title">KEY FEATURES</h2>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <div class="col">
+                <div class="feature-card">
+                    <h5>Post Your Original Art</h5>
+                    <p>Share your unique character designs and original artworks for the community to discover.</p>
+                </div>
+            </div>
+            <div class="col">
+                <div class="feature-card">
+                    <h5>Challenge & Reimagine Characters</h5>
+                    <p>Invite others to reinterpret your original characters in their distinct artistic styles.</p>
+                </div>
+            </div>
+            <div class="col">
+                <div class="feature-card">
+                    <h5>Showcase Diverse Interpretations</h5>
+                    <p>See original creations alongside their unique reinterpretations, fostering creative growth.</p>
+                </div>
+            </div>
+            <div class="col">
+                <div class="feature-card">
+                    <h5>Discover New Perspectives</h5>
+                    <p>Explore diverse reinterpretations of art from various artists, broadening your artistic horizons.</p>
+                </div>
+            </div>
+            <div class="col">
+                <div class="feature-card">
+                    <h5>Grow Your Artistic Skills</h5>
+                    <p>Learn new techniques and expand your creative horizons by participating in challenges and critiques.</p>
+                </div>
+            </div>
+            <div class="col">
+                <div class="feature-card">
+                    <h5>Secure & Supportive Platform</h5>
+                    <p>Enjoy a safe, intuitive, and encouraging environment for sharing art and fostering artistic development.</p>
+                </div>
+            </div>
+        </div>
+
         <div class="bottom-line"></div>
     </div>
 
-    <!-- Bootstrap 5 JavaScript Bundle with Popper -->
+    <footer class="footer-custom">
+        <div class="container">
+            <p>&copy; 2025 BattleArt. All rights reserved.</p>
+            <div>
+                <a href="#">Privacy Policy</a> |
+                <a href="#">Terms of Service</a> |
+                <a href="#">Contact Us</a>
+            </div>
+        </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
