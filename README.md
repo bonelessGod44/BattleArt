@@ -48,5 +48,5 @@ Originals and reinterpretations are displayed side by side, fostering:
 ## Setup Instructions
 1. Clone the repo:  
    ```bash
-   git clone https://github.com/your-username/battleart.git
+   git clone https://github.com/bonelessGod44/BattleArt.git
 
