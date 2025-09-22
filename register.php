@@ -1,3 +1,106 @@
+<?php
+// Include config file
+require_once "config.php";
+ 
+// Define variables and initialize with empty values
+$firstName = $middleName = $lastName = $email = $password = $confirm_password = "";
+$firstName_err = $middleName_err = $lastName_err = $email_err = $password_err = $confirm_password_err = "";
+ 
+// Processing form data when form is submitted
+if($_SERVER["REQUEST_METHOD"] == "POST"){
+ 
+    // Validate first name
+    if(empty(trim($_POST["firstName"]))){
+        $firstName_err = "Please enter your first name.";
+    } else{
+        $firstName = trim($_POST["firstName"]);
+    }
+
+    // Validate middle name (optional)
+    $middleName = trim($_POST["middleName"]);
+    
+    // Validate last name
+    if(empty(trim($_POST["lastName"]))){
+        $lastName_err = "Please enter your last name.";
+    } else{
+        $lastName = trim($_POST["lastName"]);
+    }
+    
+    // Validate email
+    if(empty(trim($_POST["email"]))){
+        $email_err = "Please enter an email.";
+    } else {
+        // Prepare a select statement to check if email is already taken
+        $sql = "SELECT user_id FROM users WHERE user_email = ?";
+        
+        if($stmt = $mysqli->prepare($sql)){
+            $stmt->bind_param("s", $param_email);
+            $param_email = trim($_POST["email"]);
+            
+            if($stmt->execute()){
+                $stmt->store_result();
+                
+                if($stmt->num_rows == 1){
+                    $email_err = "This email is already taken.";
+                } else{
+                    $email = trim($_POST["email"]);
+                }
+            } else{
+                echo "Oops! Something went wrong. Please try again later.";
+            }
+            $stmt->close();
+        }
+    }
+    
+    // Validate password
+    if(empty(trim($_POST["password"]))){
+        $password_err = "Please enter a password.";     
+    } elseif(strlen(trim($_POST["password"])) < 6){
+        $password_err = "Password must have at least 6 characters.";
+    } else{
+        $password = trim($_POST["password"]);
+    }
+    
+    // Validate confirm password
+    if(empty(trim($_POST["confirmPassword"]))){
+        $confirm_password_err = "Please confirm password.";     
+    } else{
+        $confirm_password = trim($_POST["confirmPassword"]);
+        if(empty($password_err) && ($password != $confirm_password)){
+            $confirm_password_err = "Passwords did not match.";
+        }
+    }
+    
+    // Check input errors before inserting in database
+    if(empty($firstName_err) && empty($lastName_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err)){
+        
+        // Prepare an insert statement
+        $sql = "INSERT INTO users (user_firstName, user_middleName, user_lastName, user_email, user_password) VALUES (?, ?, ?, ?, ?)";
+         
+        if($stmt = $mysqli->prepare($sql)){
+            $stmt->bind_param("sssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password);
+            
+            $param_firstname = $firstName;
+            $param_middlename = $middleName;
+            $param_lastname = $lastName;
+            $param_email = $email;
+            $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
+            
+            if($stmt->execute()){
+                // Redirect to login page
+                header("location: login.php");
+            } else{
+                echo "Oops! Something went wrong. Please try again later.";
+            }
+            $stmt->close();
+        }
+    }
+    
+    // Close connection
+    $mysqli->close();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +128,7 @@
                         </div>
 
                         <!-- Registration Form -->
-                        <form>
+                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="firstName" class="form-label">First Name</label>
@@ -34,12 +137,13 @@
                                             <i class="bi bi-person" aria-hidden="true"></i>
                                         </span>
                                         <input type="text" 
-                                               class="form-control" 
-                                               id="firstName" 
                                                name="firstName"
-                                               placeholder="Enter first name" 
-                                               required>
+                                               class="form-control <?php echo (!empty($firstName_err)) ? 'is-invalid' : ''; ?>" 
+                                               value="<?php echo $firstName; ?>"
+                                               id="firstName" 
+                                               placeholder="Enter first name">
                                     </div>
+                                    <span class="text-danger"><?php echo $firstName_err; ?></span>
                                 </div>
                                 
                                 <!-- Middle Name -->
@@ -50,9 +154,10 @@
                                             <i class="bi bi-person-plus" aria-hidden="true"></i>
                                         </span>
                                         <input type="text" 
+                                               name="middleName"
                                                class="form-control" 
                                                id="middleName" 
-                                               name="middleName"
+                                               value="<?php echo $middleName; ?>"
                                                placeholder="Enter middle name">
                                     </div>
                                 </div>
@@ -65,27 +170,13 @@
                                             <i class="bi bi-person-fill" aria-hidden="true"></i>
                                         </span>
                                         <input type="text" 
-                                               class="form-control" 
-                                               id="lastName" 
                                                name="lastName"
-                                               placeholder="Enter last name" 
-                                               required>
+                                               class="form-control <?php echo (!empty($lastName_err)) ? 'is-invalid' : ''; ?>" 
+                                               id="lastName" 
+                                               value="<?php echo $lastName; ?>"
+                                               placeholder="Enter last name">
                                     </div>
-                                </div>
-                                
-                                <!-- Suffix -->
-                                <div class="col-md-4">
-                                    <label for="suffix" class="form-label">Suffix</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="bi bi-badge" aria-hidden="true"></i>
-                                        </span>
-                                        <input type="text" 
-                                               class="form-control" 
-                                               id="suffix" 
-                                               name="suffix"
-                                               placeholder="Jr., Sr., III">
-                                    </div>
+                                    <span class="text-danger"><?php echo $lastName_err; ?></span>
                                 </div>
                                 
                                 <!-- Email -->
@@ -96,12 +187,13 @@
                                             <i class="bi bi-envelope" aria-hidden="true"></i>
                                         </span>
                                         <input type="email" 
-                                               class="form-control" 
-                                               id="email" 
                                                name="email"
-                                               placeholder="Enter email" 
-                                               required>
+                                               class="form-control <?php echo (!empty($email_err)) ? 'is-invalid' : ''; ?>" 
+                                               id="email" 
+                                               value="<?php echo $email; ?>"
+                                               placeholder="Enter email">
                                     </div>
+                                    <span class="text-danger"><?php echo $email_err; ?></span>
                                 </div>
                                 
                                 <!-- Password -->
@@ -112,12 +204,13 @@
                                             <i class="bi bi-lock" aria-hidden="true"></i>
                                         </span>
                                         <input type="password" 
-                                               class="form-control" 
-                                               id="password" 
                                                name="password"
-                                               placeholder="Enter password" 
-                                               required>
+                                               class="form-control <?php echo (!empty($password_err)) ? 'is-invalid' : ''; ?>" 
+                                               id="password"
+                                               value="<?php echo $password; ?>"
+                                               placeholder="Enter password">
                                     </div>
+                                     <span class="text-danger"><?php echo $password_err; ?></span>
                                 </div>
                                 
                                 <!-- Confirm Password -->
@@ -128,12 +221,13 @@
                                             <i class="bi bi-lock-fill" aria-hidden="true"></i>
                                         </span>
                                         <input type="password" 
-                                               class="form-control" 
-                                               id="confirmPassword" 
                                                name="confirmPassword"
-                                               placeholder="Re-enter password" 
-                                               required>
+                                               class="form-control <?php echo (!empty($confirm_password_err)) ? 'is-invalid' : ''; ?>" 
+                                               id="confirmPassword" 
+                                               value="<?php echo $confirm_password; ?>"
+                                               placeholder="Re-enter password">
                                     </div>
+                                     <span class="text-danger"><?php echo $confirm_password_err; ?></span>
                                 </div>
                             </div>
 
@@ -148,7 +242,7 @@
                             <!-- Login Link -->
                             <div class="text-center">
                                 <p class="mb-0">Already have an account? 
-                                    <a href="./login.html" class="signup-link">
+                                    <a href="./login.php" class="signup-link">
                                         Sign in here
                                     </a>
                                 </p>
@@ -172,3 +266,4 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

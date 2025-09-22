@@ -1,4 +1,26 @@
-﻿<!DOCTYPE html>
+﻿<?php
+// Include authentication check
+require_once 'auth_check.php';
+
+// Require login to access this page
+requireLogin();
+
+// Get current user info
+$user_info = getSessionInfo();
+$user_email = getCurrentUser();
+
+// You can add more user-specific data here
+$user_name = explode('@', $user_email)[0]; // Simple way to get username from email
+
+// Map email to user type for badge display
+$user_types = [
+    'admin@battleart.com' => 'Admin',
+    'user@battleart.com' => 'User', 
+    'artist@battleart.com' => 'Artist'
+];
+$user_badge = $user_types[$user_email] ?? 'User';
+?>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -40,7 +62,6 @@
             color: #fff;
             font-weight: 500;
         }
-
 
         .profile-container {
             background-color: #fff;
@@ -109,10 +130,10 @@
             gap: 0.5rem;
         }
 
-            .profile-actions .btn-group {
-                display: flex;
-                gap: 0.5rem;
-            }
+        .profile-actions .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
 
         .btn-profile {
             background-color: var(--light-purple);
@@ -124,18 +145,18 @@
             transition: background-color 0.2s ease;
         }
 
-            .btn-profile:hover {
-                background-color: var(--primary-bg);
-                color: #fff;
-            }
+        .btn-profile:hover {
+            background-color: var(--primary-bg);
+            color: #fff;
+        }
 
         .btn-secondary {
             background-color: #6c757d;
         }
 
-            .btn-secondary:hover {
-                background-color: #5a6268;
-            }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
 
         .profile-tabs .nav-link {
             color: #6c757d;
@@ -145,14 +166,14 @@
             transition: color 0.2s, border-bottom 0.2s;
         }
 
-            .profile-tabs .nav-link:hover {
-                color: var(--primary-bg);
-            }
+        .profile-tabs .nav-link:hover {
+            color: var(--primary-bg);
+        }
 
-            .profile-tabs .nav-link.active {
-                color: white;
-                border-bottom-color: var(--primary-bg);
-            }
+        .profile-tabs .nav-link.active {
+            color: white;
+            border-bottom-color: var(--primary-bg);
+        }
 
         .stats-grid {
             display: flex;
@@ -168,29 +189,29 @@
             position: relative;
         }
 
-            .stat-item:not(:last-child):after {
-                content: '';
-                position: absolute;
-                right: 0;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 2px;
-                height: 80%;
-                background-color: #e9ecef;
-            }
+        .stat-item:not(:last-child):after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 80%;
+            background-color: #e9ecef;
+        }
 
-            .stat-item h6 {
-                font-size: 0.9rem;
-                font-weight: bold;
-                margin-bottom: 0.25rem;
-                color: var(--text-dark);
-            }
+        .stat-item h6 {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+        }
 
-            .stat-item p {
-                font-size: 0.8rem;
-                color: #777;
-                margin: 0;
-            }
+        .stat-item p {
+            font-size: 0.8rem;
+            color: #777;
+            margin: 0;
+        }
 
         .goal-item {
             display: flex;
@@ -199,36 +220,36 @@
             align-items: center;
         }
 
-            .goal-item .goal-year {
-                font-weight: bold;
-                font-size: 1.2rem;
-                color: var(--primary-bg);
-            }
+        .goal-item .goal-year {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--primary-bg);
+        }
 
-            .goal-item .goal-progress {
-                font-size: 0.8rem;
-                color: #777;
-            }
+        .goal-item .goal-progress {
+            font-size: 0.8rem;
+            color: #777;
+        }
 
         .welcome-section {
             text-align: center;
             margin-bottom: 2rem;
         }
 
-            .welcome-section h4 {
-                font-weight: 300;
-                font-size: 1.5rem;
-                color: var(--light-purple);
-                font-style: italic;
-            }
+        .welcome-section h4 {
+            font-weight: 300;
+            font-size: 1.5rem;
+            color: var(--light-purple);
+            font-style: italic;
+        }
 
-            .welcome-section h5 {
-                font-size: 1.25rem;
-                font-weight: bold;
-                color: var(--text-dark);
-                margin-top: 1rem;
-                margin-bottom: 1.5rem;
-            }
+        .welcome-section h5 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
 
         .star-rating {
             font-size: 1.5rem;
@@ -242,12 +263,37 @@
             padding-top: 2rem;
         }
 
-            .prioritizing-section h5 {
-                color: var(--text-dark);
-                font-weight: bold;
-                font-size: 1.25rem;
-                margin-bottom: 1rem;
-            }
+        .prioritizing-section h5 {
+            color: var(--text-dark);
+            font-weight: bold;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Session info alert */
+        .session-info {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+            color: white;
+        }
 
         @media (max-width: 768px) {
             .profile-container {
@@ -281,21 +327,18 @@
                 margin-bottom: 1rem;
             }
 
-                .stat-item:last-child {
-                    border-bottom: none;
-                }
+            .stat-item:last-child {
+                border-bottom: none;
+            }
         }
     </style>
 </head>
 <body>
-
-
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
-
-            <a class="navbar-brand d-flex align-items-center" href="#">
+            <a class="navbar-brand d-flex align-items-center" href="index.html">
                 <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
-                <span class="navbar-brand-text"></span>
+                <span class="navbar-brand-text">BattleArt</span>
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -312,8 +355,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom d-flex align-items-center" href="profile.html">
+                        <a class="nav-link nav-link-custom d-flex align-items-center" href="profile.php">
                             <i class="fas fa-user me-2"></i> Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom d-flex align-items-center logout-btn" href="logout.php">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
                         </a>
                     </li>
                 </ul>
@@ -322,6 +370,14 @@
     </nav>
 
     <div class="profile-container">
+        <!-- Session Welcome Message -->
+        <div class="session-info">
+            <i class="fas fa-check-circle me-2" style="color: #28a745;"></i>
+            <strong>Welcome back, <?php echo htmlspecialchars(ucfirst($user_name)); ?>!</strong> 
+            You are logged in as <strong><?php echo htmlspecialchars($user_email); ?></strong>
+            <br><small>Logged in: <?php echo date('Y-m-d H:i:s', $user_info['login_time']); ?></small>
+        </div>
+
         <img id="banner-img" src="assets/images/night-road.png" alt="User Profile Banner" class="profile-banner">
 
         <div class="profile-header">
@@ -329,10 +385,11 @@
                 <img id="avatar-img" src="assets/images/nagStare.png" alt="User Avatar" class="profile-avatar">
             </div>
             <div class="profile-info">
-                <h3>Zhurricane <span class="badge">User</span></h3>
+                <h3><?php echo htmlspecialchars(ucfirst($user_name)); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
                 <div class="profile-meta text-muted">
-                    Last Seen: 11 minutes ago<br>
-                    Joined: 4 July 2022 05:18:56 PM<br>
+                    Email: <?php echo htmlspecialchars($user_email); ?><br>
+                    Last Activity: <?php echo date('Y-m-d H:i:s', $user_info['last_activity']); ?><br>
+                    Session Started: <?php echo date('M j, Y g:i:s A', $user_info['login_time']); ?><br>
                 </div>
             </div>
             <div class="profile-actions">
@@ -379,11 +436,11 @@
         </div>
 
         <div class="welcome-section">
-            <h4>Welcome to my camp, traveler.</h4>
+            <h4>Welcome to <?php echo htmlspecialchars($user_name); ?>'s art battle profile!</h4>
             <p>
-                I joined Artfight in 2022 ! (4th of July!)<br>
-                Here is how I prioritize my characters personally, however this shouldn't stop you from attacking anyone you want!!
-                <br>I wouldn't put characters I don't want art off on here!
+                Account Type: <strong><?php echo htmlspecialchars($user_badge); ?></strong><br>
+                This profile is protected by session authentication. Only logged-in users can access this page.
+                <br>Explore the art battles and showcase your creativity!
             </p>
             <div class="star-rating">
                 <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
