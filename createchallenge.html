@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
+    <style>
+        :root {
+            --primary-bg: #8c76ec;
+            --secondary-bg: #a6e7ff;
+            --light-purple: #c3b4fc;
+            --text-dark: #333;
+        }
+
+        body {
+            background-image: linear-gradient(to bottom, var(--secondary-bg), var(--light-purple));
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .navbar-custom {
+            background-color: var(--primary-bg);
+        }
+
+        .form-card {
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            color: var(--text-dark);
+        }
+
+        .input-style {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            transition: border-color 0.2s;
+        }
+        .input-style:focus {
+            border-color: var(--primary-bg);
+            outline: none;
+        }
+
+        .btn-submit {
+            background-color: var(--primary-bg);
+            transition: background-color 0.2s ease;
+        }
+        .btn-submit:hover {
+            background-color: #7b68ee;
+        }
+
+        .btn-cancel {
+            background-color: #e5e7eb;
+            color: var(--text-dark);
+            transition: background-color 0.2s ease;
+        }
+        .btn-cancel:hover {
+            background-color: #d1d5db;
+        }
+
+        .drop-zone {
+            border: 3px dashed var(--light-purple);
+            background-color: #f7f7ff;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .drop-zone.drag-over {
+            border-color: var(--primary-bg);
+            background-color: #e6e0fc;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-blue-300 to-purple-400 min-h-screen font-sans">
+
+    <nav class="navbar-custom p-4 flex justify-between items-center text-white shadow-lg">
+        <div class="flex items-center">
+            <a class="flex items-center space-x-2 text-white font-bold text-xl" href="index.html">
+                <i class="fas fa-home text-white"></i>
+                <span>BattleArt</span>
+            </a>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a class="nav-link-custom flex items-center space-x-2 text-white font-medium" href="#">
+                <i class="fas fa-inbox"></i>
+                <span>Inbox</span>
+            </a>
+            <a class="nav-link-custom flex items-center space-x-2 text-white font-medium" href="#">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 md:p-8 my-8">
+        <h1 class="text-3xl font-bold text-white mb-6 text-center">Start a New Creative Challenge</h1>
+        
+        <div id="mainFormContainer" class="form-card max-w-3xl mx-auto p-6 md:p-10 relative">
+            
+            <form id="challengeForm" onsubmit="handleChallengeSubmit(event)">
+                
+                <div class="mb-6">
+                    <label for="challengeName" class="block text-lg font-semibold mb-2">Challenge Name</label>
+                    <input type="text" id="challengeName" name="challengeName" placeholder="E.g., Cyberpunk Samurai, Magical Artifact, etc." class="input-style w-full" required>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="artFile" class="block text-lg font-semibold mb-2">Upload Original Art (Image/File)</label>
+                    
+                    <div id="dropZone" class="drop-zone p-8 text-center rounded-xl cursor-pointer flex flex-col items-center justify-center">
+                        <i class="fas fa-upload text-4xl text-gray-500 mb-3"></i>
+                        <p class="text-gray-700 font-medium">Drag & Drop your image here, or click to select file.</p>
+                        <input type="file" id="artFile" name="artFile" accept="image/*" class="hidden" required onchange="handleFileSelect(this)">
+                    </div>
+                    
+                    <div id="filePreviewContainer" class="mt-4 hidden border rounded-lg p-2 bg-gray-50">
+                        <p id="fileNameDisplay" class="text-sm font-medium text-gray-700 mb-2"></p>
+                        <img id="imagePreview" class="w-full max-h-64 object-contain rounded-lg shadow-md mx-auto" alt="Art Preview">
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <label for="challengeDescription" class="block text-lg font-semibold mb-2">Challenge Description</label>
+                    <textarea id="challengeDescription" name="challengeDescription" rows="4" placeholder="Describe your artwork and provide guidelines or inspiration for reinterpretations." class="input-style w-full resize-none" required></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="handleCancel()" class="btn-cancel py-2 px-6 rounded-full font-bold shadow-md">
+                        <i class="fas fa-times-circle mr-2"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn-submit text-white py-2 px-6 rounded-full font-bold shadow-md">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit Challenge
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+       
+        window.onload = () => {
+            setupDragDrop();
+        };
+
+        function handleChallengeSubmit(event) {
+            event.preventDefault();
+            
+            const challengeName = document.getElementById('challengeName').value;
+            const file = document.getElementById('artFile').files[0];
+
+            console.log("--- Form Submission Attempted ---");
+            console.log("Challenge Name:", challengeName);
+            console.log("File Name:", file ? file.name : 'No file selected');
+            console.log("Action: Data would be sent to a server-side script (e.g., PHP) for processing and saving.");
+            console.log("---------------------------------");
+            
+            showSubmissionResult(true, `Challenge "${challengeName}" submitted successfully (client-side simulation). A PHP backend would handle the persistence.`);
+        }
+
+        function setupDragDrop() {
+            const dropZone = document.getElementById('dropZone');
+            const artFile = document.getElementById('artFile');
+
+            dropZone.addEventListener('click', () => artFile.click());
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+            });
+
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0) {
+                    artFile.files = files;
+                    handleFileSelect(artFile);
+                }
+            }
+        }
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            const previewContainer = document.getElementById('filePreviewContainer');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const imagePreview = document.getElementById('imagePreview');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+                fileNameDisplay.textContent = `Selected file: ${file.name}`;
+                document.getElementById('dropZone').classList.add('hidden');
+            } else {
+                previewContainer.classList.add('hidden');
+                document.getElementById('dropZone').classList.remove('hidden');
+            }
+        }
+
+        function handleCancel() {
+            window.location.href = 'gallery.html';
+        }
+        
+        // Displays a custom result message instead of an alert
+        function showSubmissionResult(isSuccess, message) {
+            const formContainer = document.getElementById('mainFormContainer');
+            const iconClass = isSuccess ? 'fas fa-check-circle text-green-500' : 'fas fa-times-circle text-red-500';
+            const buttonText = isSuccess ? 'Return to Form' : 'Try Again';
+            const buttonAction = isSuccess ? 'window.location.reload()' : 'window.location.reload()'; // Reload to reset the form
+
+            formContainer.innerHTML = `
+                <div class="text-center p-8">
+                    <i class="${iconClass} text-6xl mb-4"></i>
+                    <h2 class="text-2xl font-bold mb-2">${isSuccess ? 'Submission Simulated' : 'Submission Failed'}</h2>
+                    <p class="text-gray-600 mb-6">${message}</p>
+                    <button onclick="${buttonAction}" class="btn-submit text-white py-2 px-6 rounded-full font-bold shadow-md">
+                        ${buttonText}
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
