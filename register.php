@@ -3,8 +3,8 @@
 require_once "config.php";
  
 // Define variables and initialize with empty values
-$firstName = $middleName = $lastName = $email = $password = $confirm_password = "";
-$firstName_err = $middleName_err = $lastName_err = $email_err = $password_err = $confirm_password_err = "";
+$firstName = $middleName = $lastName = $email = $password = $confirm_password = $userName ="";
+$firstName_err = $middleName_err = $lastName_err = $email_err = $password_err = $confirm_password_err = $userName_err ="";
  
 // Processing form data when form is submitted
 if($_SERVER["REQUEST_METHOD"] == "POST"){
@@ -70,22 +70,48 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             $confirm_password_err = "Passwords did not match.";
         }
     }
+
+    if(empty(trim($_POST["userName"]))){
+        $userName_err = "Please enter a username.";
+    } else {
+        // Prepare a select statement to check if username is already taken
+        $sql = "SELECT user_id FROM users WHERE user_userName = ?";
+        
+        if($stmt = $mysqli->prepare($sql)){
+            $stmt->bind_param("s", $param_userName);
+            $param_userName = trim($_POST["userName"]);
+            
+            if($stmt->execute()){
+                $stmt->store_result();
+                
+                if($stmt->num_rows == 1){
+                    $userName_err = "This username is already taken.";
+                } else{
+                    $userName = trim($_POST["userName"]);
+                }
+            } else{
+                echo "Oops! Something went wrong. Please try again later.";
+            }
+            $stmt->close();
+        }
+    }
     
     // Check input errors before inserting in database
-    if(empty($firstName_err) && empty($lastName_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err)){
-        
+    if(empty($firstName_err) && empty($lastName_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($userName_err)){
+
         // Prepare an insert statement
-        $sql = "INSERT INTO users (user_firstName, user_middleName, user_lastName, user_email, user_password) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO users (user_firstName, user_middleName, user_lastName, user_email, user_password, user_userName) VALUES (?, ?, ?, ?, ?, ?)";
          
         if($stmt = $mysqli->prepare($sql)){
-            $stmt->bind_param("sssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password);
+            $stmt->bind_param("ssssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password, $param_username);
             
             $param_firstname = $firstName;
             $param_middlename = $middleName;
             $param_lastname = $lastName;
             $param_email = $email;
             $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
-            
+            $param_username = $userName;
+
             if($stmt->execute()){
                 // Redirect to login page
                 header("location: login.php");
@@ -129,6 +155,24 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
                         <!-- Registration Form -->
                         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+
+                        <!-- Username -->
+                                <div class="col-md-5">
+                                    <label for="username" class="form-label">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-at" aria-hidden="true"></i>
+                                        </span>
+                                        <input type="text"
+                                               name="userName"
+                                               class="form-control <?php echo (!empty($userName_err)) ? 'is-invalid' : ''; ?>"
+                                               id="userName"
+                                               value="<?php echo $userName; ?>"
+                                               placeholder="Enter username">
+                                    </div>
+                                    <span class="text-danger"><?php echo $userName_err; ?></span>
+                                </div>
+
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="firstName" class="form-label">First Name</label>
@@ -266,4 +310,3 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

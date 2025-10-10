@@ -56,6 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             // Store data in session variables as required by auth_check.php
                             $_SESSION["user_logged_in"] = true;
                             $_SESSION["user_email"] = $email_from_db;
+                            $_SESSION["user_id"] = $id;
                             $_SESSION["login_time"] = time();
                             $_SESSION["last_activity"] = time();
 
@@ -170,7 +171,7 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                                         Remember me
                                     </label>
                                 </div>
-                                <a href="./forgot.html" class="forgot-password-link">
+                                <a href="./forgot.php" class="forgot-password-link">
                                     Forgot Password?
                                 </a>
                             </div>
@@ -197,7 +198,7 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
 
                 <!-- additional links -->
                 <div class="text-center mt-3">
-                    <a href="./index.html" class="back-home-link">
+                    <a href="./index.php" class="back-home-link">
                         <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
                         Back to Home
                     </a>

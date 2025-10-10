@@ -9,8 +9,29 @@ requireLogin();
 $user_info = getSessionInfo();
 $user_email = getCurrentUser();
 
-// You can add more user-specific data here
-$user_name = explode('@', $user_email)[0]; // Simple way to get username from email
+// Get username from database
+require_once "config.php";
+
+$user_name = "Unknown User"; // Default fallback
+$sql = "SELECT user_userName, user_firstName, user_lastName FROM users WHERE user_email = ?";
+
+if($stmt = $mysqli->prepare($sql)){
+    $stmt->bind_param("s", $user_email);
+    
+    if($stmt->execute()){
+        $result = $stmt->get_result();
+        if($result->num_rows == 1){
+            $row = $result->fetch_assoc();
+            $user_name = $row['user_userName'];
+            $user_firstName = $row['user_firstName'];
+            $user_lastName = $row['user_lastName'];
+        }
+    }
+    $stmt->close();
+}
+
+// Close connection
+$mysqli->close();
 
 // Map email to user type for badge display
 $user_types = [
@@ -452,7 +473,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
 <body>
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="index.html">
+            <a class="navbar-brand d-flex align-items-center" href="index.php">
                 <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
                 <span class="navbar-brand-text">BattleArt</span>
             </a>
@@ -466,7 +487,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom d-flex align-items-center me-2 me-lg-0" href="#">
+                        <a class="nav-link nav-link-custom d-flex align-items-center me-2 me-lg-0" href="notification.html">
                             <i class="fas fa-inbox me-2"></i> Inbox
                         </a>
                     </li>
@@ -489,7 +510,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
         <!-- Session Welcome Message -->
         <div class="session-info">
             <i class="fas fa-check-circle me-2" style="color: #28a745;"></i>
-            <strong>Welcome back, <?php echo htmlspecialchars(ucfirst($user_name)); ?>!</strong> 
+            <strong>Welcome back, <?php echo htmlspecialchars($user_name); ?>!</strong> 
             You are logged in as <strong><?php echo htmlspecialchars($user_email); ?></strong>
             <br><small>Logged in: <?php echo date('Y-m-d H:i:s', $user_info['login_time']); ?></small>
         </div>
@@ -520,7 +541,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
                     <img id="avatar-img" src="assets/images/nagStare.png" alt="User Avatar" class="profile-avatar">
                 </div>
                 <div class="profile-info">
-                    <h3><?php echo htmlspecialchars(ucfirst($user_name)); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
+                    <h3><?php echo htmlspecialchars($user_name); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
                     <div class="profile-meta text-muted">
                         Email: <?php echo htmlspecialchars($user_email); ?><br>
                     Last Activity: <?php echo date('Y-m-d H:i:s', $user_info['last_activity']); ?><br>
@@ -530,7 +551,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
                 </div>
                 <div class="profile-actions">
                     <div class="btn-group">
-                        <button class="btn btn-profile">Edit</button>
+                        <button class="btn btn-profile" onclick="window.location.href='editprofile(temp).html';">Edit</button>
                         <button class="btn btn-profile">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>

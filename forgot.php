@@ -1,3 +1,52 @@
+<?php
+session_start();
+require_once "config.php";
+
+$token = $_GET["token"] ?? null;
+
+if ($token === null) {
+    die("No token provided.");
+}
+
+$token_hash = hash("sha256", $token);
+
+// Find the user by the token hash and check if it has not expired
+$sql = "SELECT * FROM users WHERE reset_token_hash = ? AND reset_token_expires_at > NOW()";
+if ($stmt = $mysqli->prepare($sql)) {
+    $stmt->bind_param("s", $token_hash);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+    $stmt->close();
+}
+
+if ($user === null) {
+    die("Token not found or has expired.");
+}
+
+// Handle form submission to update the password
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Validate password and confirmation
+    if ($_POST["password"] !== $_POST["password_confirmation"]) {
+        die("Passwords must match.");
+    }
+
+    // Hash the new password
+    $password_hash = password_hash($_POST["password"], PASSWORD_DEFAULT);
+
+    // Update the user's password and clear the reset token
+    $update_sql = "UPDATE users SET user_password = ?, reset_token_hash = NULL, reset_token_expires_at = NULL WHERE user_id = ?";
+    if ($update_stmt = $mysqli->prepare($update_sql)) {
+        $update_stmt->bind_param("si", $password_hash, $user["user_id"]);
+        $update_stmt->execute();
+        $update_stmt->close();
+
+        echo "Password updated successfully. You can now <a href='login.php'>log in</a>.";
+        exit();
+    }
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,7 +101,7 @@
               <div class="text-center">
                 <p class="mb-0">
                   Remembered your password? 
-                  <a href="login.html" class="login-link">
+                  <a href="login.php" class="login-link">
                     Back to Login
                   </a>
                 </p>

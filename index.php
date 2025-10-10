@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,6 +26,8 @@
             padding: 0;
             color: var(--text-dark);
         }
+
+        
 
         .navbar-custom {
             background-color: var(--primary-bg);
@@ -196,15 +201,28 @@
             margin-top: auto;
         }
 
-            .btn-challenge-custom:hover {
-                background-color: var(--dark-purple-border);
-                color: #fff;
-            }
+        .btn-challenge-custom:hover {
+            background-color: var(--dark-purple-border);
+            color: #fff;
+        }
 
+            .logout-btn {
+            background-color: #dc3545; /* Red */
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s ease;
+        }
 
+        .logout-btn:hover {
+            background-color: #c82333; /* Darker Red */
+            color: white;
+        }
 
                 
-
         /* About section styling */
         .about-section {
             padding: 4rem 0;
@@ -493,29 +511,64 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
-                <span class="navbar-brand-text"></span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon">
-                    <img src="assets/images/hamburg.png" alt="Menu Icon" style="width: 24px; height: 24px;">
-                </span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item me-2 me-lg-0">
-                        <a href="./register.php" class="btn btn-signup-custom">Sign up</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="./login.php" class="btn btn-login-custom">Log In</a>
-                    </li>
-                </ul>
+    <?php if (isset($_SESSION['user_id'])): ?>
+        <nav class="navbar navbar-expand-lg navbar-custom">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center" href="index.php">
+                    <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
+                    <span class="navbar-brand-text">BattleArt</span>
+                </a>
+                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon">
+                        <img src="assets/images/hamburg.png" alt="Menu Icon" style="width: 24px; height: 24px;">
+                    </span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                    <ul class="navbar-nav align-items-center">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom d-flex align-items-center me-2" href="#">
+                                <i class="fas fa-inbox me-2"></i> Inbox
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom d-flex align-items-center me-2" href="profile.php">
+                                <i class="fas fa-user me-2"></i> Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom d-flex align-items-center logout-btn" href="logout.php">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+        <?php else: ?>
+            <nav class="navbar navbar-expand-lg navbar-custom">
+                <div class="container-fluid">
+                    <a class="navbar-brand d-flex align-items-center" href="#">
+                        <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
+                        <span class="navbar-brand-text"></span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon">
+                            <img src="assets/images/hamburg.png" alt="Menu Icon" style="width: 24px; height: 24px;">
+                        </span>
+                    </button>
+                    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                        <ul class="navbar-nav">
+                            <li class="nav-item me-2 me-lg-0">
+                                <a href="./register.php" class="btn btn-signup-custom">Sign up</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./login.php" class="btn btn-login-custom">Log In</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        <?php endif; ?>
 
     <div class="main-banner-area">
         <header class="hero-section">
