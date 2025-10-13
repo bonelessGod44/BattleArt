@@ -54,7 +54,13 @@
             color: var(--text-light) !important;
             font-weight: 500;
             padding: 0.5rem 0.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
         }
+
+            .nav-link:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
 
             .navbar-brand .fa-house {
                 font-size: 1.25rem;
@@ -74,7 +80,7 @@
 
         /* Header styling */
         .settings-header h1 {
-            color: var(--dark-purple-border) !important; /* Using a darker accent for the main title */
+            color: var(--dark-purple-border) !important;
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 0.25rem;
@@ -106,17 +112,10 @@
         }
 
             .btn-primary:hover {
-                background-color: var(--dark-purple-border); /* Darker hover effect */
+                background-color: var(--dark-purple-border);
                 border-color: var(--dark-purple-border);
                 transform: translateY(-1px);
             }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            border-color: #6c757d;
-            color: var(--text-light);
-            border-radius: 0.75rem;
-        }
 
         /* Danger button (Logout/Delete) */
         .btn-danger {
@@ -124,15 +123,20 @@
             border-color: var(--bs-danger);
         }
 
-            .btn-danger:hover {
-                background-color: #c82333;
-                border-color: #c82333;
-            }
-
-        .btn-outline-danger {
-            color: var(--bs-danger);
-            border-color: var(--bs-danger);
+        /* About button (using secondary color for contrast but not danger) */
+        .btn-info { /* Changed to info for a distinct, non-danger look */
+            background-color: #17a2b8; /* A nice blue/cyan color */
+            border-color: #17a2b8;
+            border-radius: 0.75rem;
+            color: var(--text-light);
+            transition: background-color 0.2s, transform 0.1s;
         }
+
+            .btn-info:hover {
+                background-color: #138496;
+                border-color: #138496;
+                transform: translateY(-1px);
+            }
 
         /* Section Titles */
         .section-title {
@@ -143,22 +147,6 @@
             margin-bottom: 1.5rem;
         }
 
-        /* Switch Styling (using primary color) */
-        .form-switch .form-check-input {
-            background-color: #e9ecef;
-        }
-
-        .form-check-input:checked {
-            background-color: var(--bs-primary);
-            border-color: var(--bs-primary);
-        }
-
-        /* Text color primary for links/accents */
-        .text-primary, .btn-outline-primary {
-            color: var(--bs-primary) !important;
-            border-color: var(--bs-primary);
-        }
-
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .settings-container {
@@ -166,41 +154,31 @@
                 border-radius: 1.5rem;
                 margin-top: 3rem;
             }
-
-            .settings-header h1 {
-                font-size: 1.75rem;
-            }
-
-            body {
-                padding: 1rem;
-                align-items: flex-start;
-                background: linear-gradient(135deg, var(--light-purple) 0%, var(--secondary-bg) 100%);
-            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Top Navbar (FIXED: Logo left, links right) -->
+    <!-- Top Navbar (BattleArt Left, Links Right) -->
     <nav class="custom-navbar navbar navbar-expand">
         <div class="container-fluid" style="max-width: 1000px;">
-            <!-- BattleArt Logo (Left side) -->
+            <!-- LEFT: BattleArt Logo -->
             <a class="navbar-brand d-flex align-items-center" href="#">
                 <i class="fas fa-house me-1"></i>
                 BattleArt
             </a>
 
-            <!-- Navigation Links (Pushed to the far right using ms-auto) -->
+            <!-- RIGHT: Links (Pushed using ms-auto) -->
             <div class="ms-auto d-flex align-items-center">
-                <a class="nav-link" href="#">
+                <a class="nav-link d-none d-md-block" href="#">
                     <i class="fas fa-inbox me-1"></i>
                     Inbox
                 </a>
-                <a class="nav-link" href="#">
+                <a class="nav-link d-none d-md-block" href="#">
                     <i class="fas fa-user-circle me-1"></i>
                     Profile
                 </a>
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="#" onclick="event.preventDefault(); handleLogout()">
                     <i class="fas fa-sign-out-alt me-1"></i>
                     Logout
                 </a>
@@ -315,18 +293,22 @@
             </div>
         </div>
 
+        <!-- App Info Section (NEW LOCATION) -->
+        <div class="mb-5">
+            <h2 class="section-title h5">App Information</h2>
+            <button onclick="showAbout()" class="btn btn-info w-100 py-2">
+                <i class="fas fa-info-circle me-2"></i>
+                About BattleArt App
+            </button>
+        </div>
+
         <!-- Danger Zone Section -->
         <div class="mb-3">
             <h2 class="section-title h5 text-danger">Danger Zone</h2>
             <div class="row g-3">
-                <div class="col-md-6">
-                    <button onclick="handleLogout()" class="btn btn-danger w-100 py-2">
-                        <i class="fas fa-sign-out-alt me-2"></i>
-                        Log Out of All Devices
-                    </button>
-                </div>
-                <div class="col-md-6">
-                    <button onclick="deleteAccount()" class="btn btn-outline-danger w-100 py-2">
+                <!-- Permanently Delete Account Button -->
+                <div class="col-12">
+                    <button onclick="deleteAccount()" class="btn btn-danger w-100 py-2">
                         <i class="fas fa-trash-alt me-2"></i>
                         Permanently Delete Account
                     </button>
@@ -359,6 +341,7 @@
             const container = document.getElementById('message-container');
             const modalId = `messageModal${Date.now()}`;
 
+            // Generate the Bootstrap modal HTML
             container.innerHTML = `
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
                         <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -402,7 +385,6 @@
 
         function saveProfile() {
             const firstName = document.getElementById('first-name').value.trim();
-            const middleName = document.getElementById('middle-name').value.trim();
             const lastName = document.getElementById('last-name').value.trim();
             const birthday = document.getElementById('birthday').value;
 
@@ -410,8 +392,9 @@
                 return showMessage("Error", "First Name, Last Name, and Date of Birth are required.", true);
             }
 
+            // Update local mock data
             profile.firstName = firstName;
-            profile.middleName = middleName;
+            profile.middleName = document.getElementById('middle-name').value.trim();
             profile.lastName = lastName;
             profile.birthday = birthday;
 
@@ -435,7 +418,7 @@
                 return showMessage("Error", "New password and confirmation do not match.", true);
             }
 
-            console.log("Password change requested for user:", profile.userId);
+            // Clear fields on successful mock update
             document.getElementById('current-password').value = '';
             document.getElementById('new-password').value = '';
             document.getElementById('confirm-password').value = '';
@@ -464,6 +447,12 @@
                 performLogout);
         }
 
+        function showAbout() {
+            showMessage("About BattleArt",
+                "BattleArt App Version 1.2.0\n\n© 2024 Art & Tech Inc. All rights reserved.\nThis app is designed to connect artists with creative challenges.",
+                false);
+        }
+
         function deleteAccount() {
             // Confirmation Modal
             showConfirmationModal("Danger: Delete Account",
@@ -475,20 +464,17 @@
 
         function performLogout() {
             showMessage("Logged Out", "You have successfully logged out. Redirecting to login page... (Mock action)");
-            console.log("User logged out in mock action.");
         }
 
         function performDelete() {
             showMessage("Account Deleted", "Your account has been permanently deleted. (Mock action)", true);
-            console.error("User account deleted in mock action.");
         }
 
-
+        // Custom Confirmation Modal using Bootstrap
         function showConfirmationModal(title, message, confirmText, confirmVariant, callback) {
             const container = document.getElementById('message-container');
             const modalId = 'confirmModal';
 
-            // Remove existing modal if any
             const existingModal = document.getElementById(modalId);
             if (existingModal) existingModal.remove();
 
