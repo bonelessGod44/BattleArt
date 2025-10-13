@@ -20,11 +20,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $userBio = trim($_POST['userBio']);
     
     // Server-side validation for bio word limit
-    $word_limit = 500;
-    $words = str_word_count($userBio, 1); // Get words as an array
-    if (count($words) > $word_limit) {
-        $userBio = implode(' ', array_slice($words, 0, $word_limit));
-    }
+    $char_limit = 500;
+    if (mb_strlen($userBio) > $char_limit) {
+    // If over the limit, truncate the string to 500 characters
+    $userBio = mb_substr($userBio, 0, $char_limit);
+}
     
     // Retrieve toggle values
     $showArt = isset($_POST['toggleArt']) ? 1 : 0;
@@ -205,8 +205,8 @@ if (isset($_SESSION['message'])) {
 
             <div>
                 <label for="userBio" class="block text-sm font-medium text-gray-700 mb-1">Profile Welcome Message</label>
-                <textarea id="userBio" name="userBio" rows="4" oninput="updateWordCount()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-purple-500 focus:border-purple-500" placeholder="Tell everyone a little about your art..."><?php echo htmlspecialchars($userBio ?? ''); ?></textarea>
-                <div class="text-right text-xs text-gray-500 mt-1"><span id="wordCount">0</span> / 500 words</div>
+                <textarea id="userBio" name="userBio" rows="4" oninput="updateCharCount()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-purple-500 focus:border-purple-500" placeholder="Tell everyone a little about your art..."><?php echo htmlspecialchars($userBio ?? ''); ?></textarea>
+                <div class="text-right text-xs text-gray-500 mt-1"><span id="charCount">0</span> / 500 characters</div>
             </div>
 
             <hr class="border-gray-200" />
@@ -232,26 +232,38 @@ if (isset($_SESSION['message'])) {
             <?php if (!empty($message)) echo $message; ?>
 
             <div class="pt-4 flex justify-center space-x-4 border-t border-gray-100">
-                <button type="submit" class="flex items-center px-6 py-2 bg-purple-600 text-white font-semibold rounded-xl shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 13.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>Save Changes</button>
+                <button id="saveButton" type="submit" class="flex items-center px-6 py-2 bg-purple-600 text-white font-semibold rounded-xl shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 13.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>Save Changes</button>
                 <button type="button" onclick="window.location.href='profile.php'" class="flex items-center px-6 py-2 bg-gray-600 text-white font-semibold rounded-xl shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>Cancel</button>
+            </div>
+            <div id="charLimitAlert" class="hidden mt-4 p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700">
+                <strong>Character limit exceeded!</strong>
             </div>
         </form>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', updateWordCount);
-
-        function updateWordCount() {
+        // This function now counts characters instead of words.
+        function updateCharCount() {
             const bioText = document.getElementById('userBio').value;
-            const words = bioText.trim().split(/\s+/).filter(word => word.length > 0);
-            const wordCount = words.length;
-            const countElement = document.getElementById('wordCount');
-            countElement.textContent = wordCount;
-            if (wordCount > 500) {
-                countElement.classList.add('text-red-600', 'font-bold');
-            } else {
-                countElement.classList.remove('text-red-600', 'font-bold');
-            }
+            const saveButton = document.getElementById('saveButton');
+            const charLimitAlert = document.getElementById('charLimitAlert');
+            const countElement = document.getElementById('charCount');
+        
+            const charCount = bioText.length;
+        
+            countElement.textContent = charCount;
+            
+            if (charCount > 500) {
+            countElement.classList.add('text-red-600', 'font-bold');
+            saveButton.disabled = true;
+            saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+            charLimitAlert.classList.remove('hidden');
+        } else {
+            countElement.classList.remove('text-red-600', 'font-bold');
+            saveButton.disabled = false;
+            saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            charLimitAlert.classList.add('hidden');
         }
+    }
 
         const profileModal = document.getElementById('cropperModal');
         const profileImageToCrop = document.getElementById('imageToCrop');
@@ -321,6 +333,7 @@ if (isset($_SESSION['message'])) {
         
         window.closeProfileModal = () => closeModal(profileModal, profileCropper, profileFileInput);
         window.closeBannerModal = () => closeModal(bannerModal, bannerCropper, bannerFileInput);
+        document.addEventListener('DOMContentLoaded', updateCharCount);
     </script>
 </body>
 </html>
