@@ -12,26 +12,34 @@ $user_email = getCurrentUser();
 // Get username from database
 require_once "config.php";
 
-$user_name = "Unknown User"; // Default fallback
-$sql = "SELECT user_userName, user_firstName, user_lastName FROM users WHERE user_email = ?";
+$user_id = $_SESSION['user_id'];
+$user = []; // This will hold all the user's data
+
+// This new query fetches the name, email, picture, bio, banner, and all privacy settings
+$sql = "SELECT user_userName, user_email, user_profile_pic, user_bio, user_banner_pic, show_art, show_history, show_comments FROM users WHERE user_id = ?";
 
 if($stmt = $mysqli->prepare($sql)){
-    $stmt->bind_param("s", $user_email);
-    
+    $stmt->bind_param("i", $user_id);
     if($stmt->execute()){
         $result = $stmt->get_result();
         if($result->num_rows == 1){
-            $row = $result->fetch_assoc();
-            $user_name = $row['user_userName'];
-            $user_firstName = $row['user_firstName'];
-            $user_lastName = $row['user_lastName'];
+            $user = $result->fetch_assoc();
+        } else {
+            die("Error: User not found.");
         }
     }
     $stmt->close();
 }
-
-// Close connection
 $mysqli->close();
+
+// This line creates the correct path for the profile picture
+$profilePicPath = !empty($user['user_profile_pic']) 
+    ? 'assets/uploads/' . htmlspecialchars($user['user_profile_pic']) 
+    : 'assets/images/default-avatar.png'; // Use a default image if none is set
+
+$bannerPicPath = !empty($user['user_banner_pic']) 
+    ? 'assets/uploads/' . htmlspecialchars($user['user_banner_pic']) 
+    : 'assets/images/night-road.png'; // Fallback to your default banner
 
 // Map email to user type for badge display
 $user_types = [
@@ -510,27 +518,32 @@ $user_badge = $user_types[$user_email] ?? 'User';
         <!-- Session Welcome Message -->
         <div class="session-info">
             <i class="fas fa-check-circle me-2" style="color: #28a745;"></i>
-            <strong>Welcome back, <?php echo htmlspecialchars($user_name); ?>!</strong> 
+            <strong>Welcome back, <?php echo htmlspecialchars($user['user_userName']); ?>!</strong> 
             You are logged in as <strong><?php echo htmlspecialchars($user_email); ?></strong>
             <br><small>Logged in: <?php echo date('Y-m-d H:i:s', $user_info['login_time']); ?></small>
         </div>
 
-        <img id="banner-img" src="assets/images/night-road.png" alt="User Profile Banner" class="profile-banner">
-
+        <img id="banner-img" src="<?php echo $bannerPicPath; ?>" alt="User Profile Banner" class="profile-banner">
 
         <ul class="nav nav-pills profile-tabs" id="profile-tabs">
             <li class="nav-item">
                 <a class="nav-link active" id="profile-tab" href="#">Profile</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" id="your-art-tab" href="#">Your art</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="history-tab" href="#">History</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="comments-tab" href="#">Comments</a>
-            </li>
+            <?php if ($user['show_art'] == 1): ?>
+                <li class="nav-item">
+                    <a class="nav-link" id="your-art-tab" href="#">Your art</a>
+                </li>
+                <?php endif; ?>
+                <?php if ($user['show_history'] == 1): ?>
+                    <li class="nav-item">
+                        <a class="nav-link" id="history-tab" href="#">History</a>
+                    </li>
+                <?php endif; ?>
+            <?php if ($user['show_comments'] == 1): ?>
+                <li class="nav-item">
+                    <a class="nav-link" id="comments-tab" href="#">Comments</a>
+                </li>
+            <?php endif; ?>
         </ul>
 
 
@@ -538,23 +551,19 @@ $user_badge = $user_types[$user_email] ?? 'User';
 
             <div class="profile-header">
                 <div class="position-relative">
-                    <img id="avatar-img" src="assets/images/nagStare.png" alt="User Avatar" class="profile-avatar">
+                    <img id="avatar-img" src="<?php echo $profilePicPath; ?>" alt="User Avatar" class="profile-avatar">
                 </div>
                 <div class="profile-info">
-                    <h3><?php echo htmlspecialchars($user_name); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
+                    <h3><?php echo htmlspecialchars($user['user_userName']); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
                     <div class="profile-meta text-muted">
-                        Email: <?php echo htmlspecialchars($user_email); ?><br>
-                    Last Activity: <?php echo date('Y-m-d H:i:s', $user_info['last_activity']); ?><br>
+                        Email: <?php echo htmlspecialchars($user['user_email']); ?><br>
+                        Last Activity: <?php echo date('Y-m-d H:i:s', $user_info['last_activity']); ?><br>
                         Session Started: <?php echo date('M j, Y g:i:s A', $user_info['login_time']); ?><br>
-                        Team: Stardust
                     </div>
                 </div>
                 <div class="profile-actions">
                     <div class="btn-group">
-                        <button class="btn btn-profile" onclick="window.location.href='editprofile(temp).html';">Edit</button>
-                        <button class="btn btn-profile">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
+                        <a href="edit-profile.php" class="btn btn-profile">Edit</a>
                     </div>
                 </div>
             </div>
@@ -581,14 +590,11 @@ $user_badge = $user_types[$user_email] ?? 'User';
                 </div>
             </div>
 
-
         <div class="welcome-section">
-            <h4>Welcome to <?php echo htmlspecialchars($user_name); ?>'s art battle profile!</h4>
+            <h4>Welcome to <?php echo htmlspecialchars($user['user_userName']); ?>'s art battle profile!</h4>
             <p>
-                    I joined Artfight in 2022 ! (4th of July!)<br>
-                    Here is how I prioritize my characters personally, however this shouldn't stop you from interpreting  anything you want!!
-                    <br>I wouldn't put characters I don't want art off on here!
-                </p>
+                <?php echo nl2br(htmlspecialchars($user['user_bio'])); ?>
+            </p>
             <div class="star-rating">
                 <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
             </div>
