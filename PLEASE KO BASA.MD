@@ -3,3 +3,22 @@ XAMPP
 PHP
 COMPOSER
 PHPMAILER
+
+CURRENT TABLE:
+user_id
+user_firstName
+user_middleName
+user_lastName
+user_email
+user_password
+user_type
+user_userName
+user_testing
+reset_token_hash
+reset_token_expires_at
+user_proile_pic
+show_art
+show_history
+show_comments
+user_bio
+user_banner_pic
