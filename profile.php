@@ -585,11 +585,6 @@ $user_badge = $user_types[$user_email] ?? 'User';
         <div class="welcome-section">
             <h4>Welcome to <?php echo htmlspecialchars($user_name); ?>'s art battle profile!</h4>
             <p>
-                Account Type: <strong><?php echo htmlspecialchars($user_badge); ?></strong><br>
-                This profile is protected by session authentication. Only logged-in users can access this page.
-                <br>Explore the art battles and showcase your creativity!
-            </p>
-            <p>
                     I joined Artfight in 2022 ! (4th of July!)<br>
                     Here is how I prioritize my characters personally, however this shouldn't stop you from interpreting  anything you want!!
                     <br>I wouldn't put characters I don't want art off on here!
