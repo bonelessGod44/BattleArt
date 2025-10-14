@@ -3,6 +3,7 @@ session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@ session_start();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
+    <link rel="stylesheet" href="assets/css/navbar.css">
     <style>
         :root {
             --primary-bg: #8c76ec;
@@ -26,8 +28,6 @@ session_start();
             padding: 0;
             color: var(--text-dark);
         }
-
-        
 
         .navbar-custom {
             background-color: var(--primary-bg);
@@ -87,10 +87,10 @@ session_start();
             box-shadow: none;
         }
 
-            .search-input:focus {
-                border-color: var(--primary-bg);
-                box-shadow: 0 0 0 0.25rem rgba(140, 118, 236, 0.25);
-            }
+        .search-input:focus {
+            border-color: var(--primary-bg);
+            box-shadow: 0 0 0 0.25rem rgba(140, 118, 236, 0.25);
+        }
 
         .search-icon-btn {
             background-color: #fff;
@@ -103,7 +103,8 @@ session_start();
         }
 
 
-        .trending-title, .features-title {
+        .trending-title,
+        .features-title {
             color: var(--primary-bg);
             font-size: 2rem;
             font-weight: bold;
@@ -111,7 +112,8 @@ session_start();
             margin-bottom: 2rem;
         }
 
-        .placeholder-card, .feature-card {
+        .placeholder-card,
+        .feature-card {
             background-color: #fff;
             border-radius: 15px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -135,16 +137,16 @@ session_start();
             min-height: 200px;
         }
 
-            .feature-card h5 {
-                color: var(--primary-bg);
-                margin-bottom: 0.75rem;
-                font-weight: bold;
-            }
+        .feature-card h5 {
+            color: var(--primary-bg);
+            margin-bottom: 0.75rem;
+            font-weight: bold;
+        }
 
-            .feature-card p {
-                font-size: 0.95rem;
-                color: #555;
-            }
+        .feature-card p {
+            font-size: 0.95rem;
+            color: #555;
+        }
 
         .trending-card-content {
             display: flex;
@@ -206,8 +208,9 @@ session_start();
             color: #fff;
         }
 
-            .logout-btn {
-            background-color: #dc3545; /* Red */
+        .logout-btn {
+            background-color: #dc3545;
+            /* Red */
             color: white;
             border: none;
             border-radius: 10px;
@@ -218,11 +221,12 @@ session_start();
         }
 
         .logout-btn:hover {
-            background-color: #c82333; /* Darker Red */
+            background-color: #c82333;
+            /* Darker Red */
             color: white;
         }
 
-                
+
         /* About section styling */
         .about-section {
             padding: 4rem 0;
@@ -353,12 +357,12 @@ session_start();
                 padding: 2rem 0;
                 margin: 2rem 0;
             }
-            
+
             .how-it-works {
                 grid-template-columns: 1fr;
                 gap: 1rem;
             }
-            
+
             .values-grid {
                 grid-template-columns: 1fr;
             }
@@ -372,7 +376,9 @@ session_start();
             border-radius: 5px;
         }
 
-        .btn-signup-custom, .btn-login-custom, .btn-primary-custom {
+        .btn-signup-custom,
+        .btn-login-custom,
+        .btn-primary-custom {
             background-color: var(--light-purple);
             border: none;
             color: #fff;
@@ -382,10 +388,12 @@ session_start();
             transition: background-color 0.2s ease;
         }
 
-            .btn-signup-custom:hover, .btn-login-custom:hover, .btn-primary-custom:hover {
-                background-color: #9d83f1;
-                color: #fff;
-            }
+        .btn-signup-custom:hover,
+        .btn-login-custom:hover,
+        .btn-primary-custom:hover {
+            background-color: #9d83f1;
+            color: #fff;
+        }
 
         .btn-signup-custom {
             margin-right: 0.5rem;
@@ -401,21 +409,21 @@ session_start();
             z-index: 1;
         }
 
-            .hero-section h1 {
-                font-size: 3.5rem;
-                font-weight: bold;
-                margin-bottom: 1rem;
-                color: #fff;
-            }
+        .hero-section h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
 
-            .hero-section p {
-                font-size: 1.25rem;
-                margin-bottom: 2rem;
-                max-width: 800px;
-                margin-left: auto;
-                margin-right: auto;
-                color: #fff;
-            }
+        .hero-section p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            color: #fff;
+        }
 
 
         .footer-custom {
@@ -428,20 +436,20 @@ session_start();
             margin-top: 4rem;
         }
 
-            .footer-custom p {
-                margin-bottom: 0.5rem;
-            }
+        .footer-custom p {
+            margin-bottom: 0.5rem;
+        }
 
-            .footer-custom a {
-                color: #fff;
-                text-decoration: none;
-                margin: 0 0.5rem;
-                transition: text-decoration 0.2s ease;
-            }
+        .footer-custom a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            transition: text-decoration 0.2s ease;
+        }
 
-                .footer-custom a:hover {
-                    text-decoration: underline;
-                }
+        .footer-custom a:hover {
+            text-decoration: underline;
+        }
 
         .search-section-bg {
             background-color: transparent;
@@ -476,12 +484,14 @@ session_start();
                 width: 95%;
             }
 
-            .trending-title, .features-title {
+            .trending-title,
+            .features-title {
                 font-size: 1.75rem;
                 margin-bottom: 1.5rem;
             }
 
-            .placeholder-card, .feature-card {
+            .placeholder-card,
+            .feature-card {
                 height: auto;
                 min-height: 150px;
             }
@@ -490,13 +500,13 @@ session_start();
                 padding: 3rem 1rem 0;
             }
 
-                .hero-section h1 {
-                    font-size: 2.5rem;
-                }
+            .hero-section h1 {
+                font-size: 2.5rem;
+            }
 
-                .hero-section p {
-                    font-size: 1rem;
-                }
+            .hero-section p {
+                font-size: 1rem;
+            }
 
             .search-section-bg {
                 padding-bottom: 1.5rem;
@@ -509,73 +519,46 @@ session_start();
         }
     </style>
 </head>
+
 <body>
 
     <?php if (isset($_SESSION['user_id'])): ?>
+        <?php require 'partials/navbar.php'; ?>
+    <?php else: ?>
         <nav class="navbar navbar-expand-lg navbar-custom">
             <div class="container-fluid">
                 <a class="navbar-brand d-flex align-items-center" href="index.php">
-                    <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
-                    <span class="navbar-brand-text">BattleArt</span>
+                    <i class="fas fa-house me-1"></i>
+                    BattleArt
                 </a>
-                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon">
                         <img src="assets/images/hamburg.png" alt="Menu Icon" style="width: 24px; height: 24px;">
                     </span>
                 </button>
                 <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                    <ul class="navbar-nav align-items-center">
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom d-flex align-items-center me-2" href="#">
-                                <i class="fas fa-inbox me-2"></i> Inbox
-                            </a>
+                    <ul class="navbar-nav">
+                        <li class="nav-item me-2 me-lg-0">
+                            <a href="./register.php" class="btn btn-signup-custom">Sign up</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom d-flex align-items-center me-2" href="profile.php">
-                                <i class="fas fa-user me-2"></i> Profile
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-custom d-flex align-items-center logout-btn" href="logout.php">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
-                            </a>
+                            <a href="./login.php" class="btn btn-login-custom">Log In</a>
                         </li>
                     </ul>
                 </div>
             </div>
         </nav>
-        <?php else: ?>
-            <nav class="navbar navbar-expand-lg navbar-custom">
-                <div class="container-fluid">
-                    <a class="navbar-brand d-flex align-items-center" href="#">
-                        <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
-                        <span class="navbar-brand-text"></span>
-                    </a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon">
-                            <img src="assets/images/hamburg.png" alt="Menu Icon" style="width: 24px; height: 24px;">
-                        </span>
-                    </button>
-                    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                        <ul class="navbar-nav">
-                            <li class="nav-item me-2 me-lg-0">
-                                <a href="./register.php" class="btn btn-signup-custom">Sign up</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="./login.php" class="btn btn-login-custom">Log In</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-        <?php endif; ?>
+    <?php endif; ?>
 
     <div class="main-banner-area">
         <header class="hero-section">
             <div class="container">
                 <h1>Unleash Your Creative Power!</h1>
                 <p>Discover, create, and share your unique digital art with a vibrant community. Join BattleArt today and turn your imagination into stunning masterpieces.</p>
-                <a href="./listofarts.html" class="btn btn-primary-custom">Start Creating Now</a>
+                <?php
+                $button_link = isset($_SESSION['user_id']) ? 'listofarts.php' : 'login.php';
+                ?>
+                <a href="<?php echo $button_link; ?>" class="btn btn-primary-custom">Start Creating Now</a>
             </div>
         </header>
         <section class="search-section-bg">
@@ -583,12 +566,14 @@ session_start();
                 <h1 class="battleart-title">BattleArt</h1>
 
                 <div class="search-container">
-                    <div class="input-group search-input-group">
-                        <input type="text" class="form-control search-input" placeholder="Search..." aria-label="Search">
-                        <button class="btn search-icon-btn" type="button" id="button-addon2">
-                            <img src="assets/images/search.gif" alt="Search Icon" style="width: 16px; height: 16px;">
-                        </button>
-                    </div>
+                    <form action="search.php" method="GET" class="w-100 d-flex justify-content-center">
+                        <div class="input-group search-input-group">
+                            <input type="text" name="query" class="form-control search-input" placeholder="Search for challenges or users..." aria-label="Search" required>
+                            <button class="btn search-icon-btn" type="submit">
+                                <img src="assets/images/search.gif" alt="Search Icon" style="width: 16px; height: 16px;">
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </section>
@@ -724,15 +709,15 @@ session_start();
                 <div class="about-content">
                     <!-- Who we are -->
                     <p class="about-intro">
-                        BattleArt is a community for original art and reinterpretations ("art battles"). 
+                        BattleArt is a community for original art and reinterpretations ("art battles").
                         We bring together artists to inspire growth through creative challenges and constructive feedback.
                     </p>
-                    
+
                     <!-- Mission -->
                     <div class="about-mission">
                         "Inspire growth through creative challenges and constructive feedback."
                     </div>
-                    
+
                     <!-- How it works -->
                     <h4 style="color: var(--primary-bg); margin-bottom: 1.5rem;">How It Works</h4>
                     <div class="how-it-works">
@@ -752,7 +737,7 @@ session_start();
                             <p>Display original and reinterpretations together for comparison and growth</p>
                         </div>
                     </div>
-                    
+
                     <!-- Values -->
                     <h4 style="color: var(--primary-bg); margin-bottom: 1.5rem;">Our Values</h4>
                     <div class="values-grid">
@@ -794,4 +779,5 @@ session_start();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

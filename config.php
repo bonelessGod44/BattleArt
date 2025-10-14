@@ -12,4 +12,6 @@ $mysqli = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 if($mysqli === false){
     die("ERROR: Could not connect. " . $mysqli->connect_error);
 }
+
+$mysqli->query("SET time_zone = '+08:00'");
 ?>

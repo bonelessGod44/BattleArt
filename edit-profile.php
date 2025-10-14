@@ -3,7 +3,7 @@ session_start();
 require_once "config.php"; // Your database connection file
 date_default_timezone_set('Asia/Manila'); // Set a consistent timezone
 
-// 1. AUTHENTICATION & SECURITY: Redirect if user is not logged in
+//AUTHENTICATION & SECURITY: Redirect if user is not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
@@ -13,7 +13,7 @@ $user_id = $_SESSION['user_id'];
 // Initialize a message variable for user feedback
 $message = "";
 
-// 2. FORM SUBMISSION LOGIC: Runs when the "Save Changes" button is clicked
+//FORM SUBMISSION LOGIC: Runs when the "Save Changes" button is clicked
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Sanitize and retrieve text inputs
     $fullName = trim($_POST['fullName']);
@@ -95,7 +95,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     exit;
 }
 
-// 3. DATA FETCHING: Get current user data to display in the form
+//DATA FETCHING: Get current user data to display in the form
 $sql = "SELECT user_userName, user_email, user_profile_pic, user_banner_pic, user_bio, show_art, show_history, show_comments FROM users WHERE user_id = ?";
 if ($stmt = $mysqli->prepare($sql)) {
     $stmt->bind_param("i", $user_id);
@@ -104,8 +104,8 @@ if ($stmt = $mysqli->prepare($sql)) {
     $stmt->fetch();
     $stmt->close();
 }
-$profilePicPath = !empty($userProfilePic) ? 'assets/uploads/' . $userProfilePic : '';
-$bannerPicPath = !empty($userBannerPic) ? 'assets/uploads/' . $userBannerPic : 'assets/images/default-banner.png'; // Fallback to a default banner
+$profilePicPath = !empty($userProfilePic) ? 'assets/uploads/' . $userProfilePic : 'assets/images/blank-profile-picture.png'; // Use a default image if none is set
+$bannerPicPath = !empty($userBannerPic) ? 'assets/uploads/' . $userBannerPic : 'assets/images/night-road.png'; // Fallback to a default banner
 
 // Check for a feedback message from a previous (failed) submission on this page
 if (isset($_SESSION['message'])) {
@@ -196,7 +196,6 @@ if (isset($_SESSION['message'])) {
                             <label class="block text-xs font-medium text-gray-500 mb-1">Email</label>
                             <div class="flex space-x-2">
                                 <input type="email" id="email" value="<?php echo htmlspecialchars($userEmail); ?>" disabled class="flex-grow px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed">
-                                <button type="button" onclick="alert('Functionality to change email is not implemented yet.')" class="h-9 px-3 py-1 bg-purple-100 text-purple-600 font-medium rounded-lg hover:bg-purple-200 transition text-sm whitespace-nowrap shadow-sm">Change</button>
                             </div>
                         </div>
                     </div>
@@ -205,7 +204,7 @@ if (isset($_SESSION['message'])) {
 
             <div>
                 <label for="userBio" class="block text-sm font-medium text-gray-700 mb-1">Profile Welcome Message</label>
-                <textarea id="userBio" name="userBio" rows="4" oninput="updateCharCount()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-purple-500 focus:border-purple-500" placeholder="Tell everyone a little about your art..."><?php echo htmlspecialchars($userBio ?? ''); ?></textarea>
+                <textarea id="userBio" name="userBio" rows="4" oninput="updateCharCount()" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-purple-500 focus:border-purple-500" placeholder="Tell everyone a little about yourself..."><?php echo htmlspecialchars($userBio ?? ''); ?></textarea>
                 <div class="text-right text-xs text-gray-500 mt-1"><span id="charCount">0</span> / 500 characters</div>
             </div>
 

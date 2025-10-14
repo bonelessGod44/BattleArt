@@ -1,27 +1,21 @@
-﻿<?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-// Include authentication check
-require_once 'auth_check.php';
-
-
-// Require login to access this page
-requireLogin();
-
-// Get current user info
-$user_info = getSessionInfo();
-$user_email = getCurrentUser();
-
-// Get username from database
+<?php
+// No login is required to view the page, so we remove auth checks here.
 require_once "config.php";
 
-$user_id = $_SESSION['user_id'];
+// Get the user_id of the profile we want to VIEW from the URL.
+$profile_user_id = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
+if ($profile_user_id === 0) {
+    die("Error: No user specified.");
+}
+
+// We still need to know who is VIEWING the page (they could be a guest or logged in).
+$viewer_user_id = $_SESSION['user_id'] ?? null;
 $user = []; // This will hold all the user's data
 
 //Fetch main user info
 $sql_user = "SELECT user_userName, user_email, user_profile_pic, user_bio, user_banner_pic, show_art, show_history, show_comments FROM users WHERE user_id = ?";
 if ($stmt_user = $mysqli->prepare($sql_user)) {
-    $stmt_user->bind_param("i", $user_id);
+    $stmt_user->bind_param("i", $profile_user_id);
     if ($stmt_user->execute()) {
         $user = $stmt_user->get_result()->fetch_assoc();
         if (!$user) {
@@ -32,21 +26,21 @@ if ($stmt_user = $mysqli->prepare($sql_user)) {
 }
 
 //Fetch stats for the grid
-// Challenges Declared (Original art by user)
+//Challenges Declared (Original art by user)
 $challenges_declared_count = 0;
 $sql_challenges = "SELECT COUNT(*) as count FROM challenges WHERE user_id = ?";
 if ($stmt_challenges = $mysqli->prepare($sql_challenges)) {
-    $stmt_challenges->bind_param("i", $user_id);
+    $stmt_challenges->bind_param("i", $profile_user_id);
     $stmt_challenges->execute();
     $challenges_declared_count = $stmt_challenges->get_result()->fetch_assoc()['count'];
     $stmt_challenges->close();
 }
 
-// Arts Challenged (Interpretations by user)
+//Arts Challenged (Interpretations by user)
 $arts_challenged_count = 0;
 $sql_interpretations = "SELECT COUNT(*) as count FROM interpretations WHERE user_id = ?";
 if ($stmt_interpretations = $mysqli->prepare($sql_interpretations)) {
-    $stmt_interpretations->bind_param("i", $user_id);
+    $stmt_interpretations->bind_param("i", $profile_user_id);
     $stmt_interpretations->execute();
     $arts_challenged_count = $stmt_interpretations->get_result()->fetch_assoc()['count'];
     $stmt_interpretations->close();
@@ -57,7 +51,7 @@ $total_art_made = $challenges_declared_count + $arts_challenged_count;
 $user_challenges = [];
 $sql_user_challenges = "SELECT challenge_id, challenge_name, original_art_filename FROM challenges WHERE user_id = ? ORDER BY created_at DESC";
 if ($stmt_user_challenges = $mysqli->prepare($sql_user_challenges)) {
-    $stmt_user_challenges->bind_param("i", $user_id);
+    $stmt_user_challenges->bind_param("i", $profile_user_id);
     $stmt_user_challenges->execute();
     $result = $stmt_user_challenges->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -90,8 +84,8 @@ $sql_history = "(SELECT
                 LIMIT 10";
 
 if ($stmt_history = $mysqli->prepare($sql_history)) {
-    // We need to bind the user_id twice
-    $stmt_history->bind_param("ii", $user_id, $user_id);
+    //We need to bind the user_id twice
+    $stmt_history->bind_param("ii", $profile_user_id, $profile_user_id);
     $stmt_history->execute();
     $result = $stmt_history->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -109,7 +103,7 @@ $sql_comments_on_art = "SELECT co.*, u.user_userName, u.user_profile_pic, ch.cha
                         WHERE ch.user_id = ? AND co.user_id != ?
                         ORDER BY co.created_at DESC LIMIT 10";
 if ($stmt_comments_on_art = $mysqli->prepare($sql_comments_on_art)) {
-    $stmt_comments_on_art->bind_param("ii", $user_id, $user_id);
+    $stmt_comments_on_art->bind_param("ii", $profile_user_id, $profile_user_id);
     $stmt_comments_on_art->execute();
     $result = $stmt_comments_on_art->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -136,7 +130,7 @@ $user_types = [
     'artist@battleart.com' => 'Artist'
 ];
 
-$user_badge = $user_types[$user_email] ?? 'User';
+$user_badge = $user_types[$user['user_email']] ?? 'User';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -564,14 +558,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
     <?php require 'partials/navbar.php'; ?>
 
     <div class="profile-container">
-        <!-- Session Welcome Message -->
-        <div class="session-info">
-            <i class="fas fa-check-circle me-2" style="color: #28a745;"></i>
-            <strong>Welcome back, <?php echo htmlspecialchars($user['user_userName']); ?>!</strong>
-            You are logged in as <strong><?php echo htmlspecialchars($user_email); ?></strong>
-            <br><small>Logged in: <?php echo date('Y-m-d H:i:s', $user_info['login_time']); ?></small>
-        </div>
-
+    
         <img id="banner-img" src="<?php echo $bannerPicPath; ?>" alt="User Profile Banner" class="profile-banner">
 
         <ul class="nav nav-pills profile-tabs" id="profile-tabs">
@@ -602,16 +589,6 @@ $user_badge = $user_types[$user_email] ?? 'User';
                 </div>
                 <div class="profile-info">
                     <h3><?php echo htmlspecialchars($user['user_userName']); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
-                    <div class="profile-meta text-muted">
-                        Email: <?php echo htmlspecialchars($user['user_email']); ?><br>
-                        Last Activity: <?php echo date('Y-m-d H:i:s', $user_info['last_activity']); ?><br>
-                        Session Started: <?php echo date('M j, Y g:i:s A', $user_info['login_time']); ?><br>
-                    </div>
-                </div>
-                <div class="profile-actions">
-                    <div class="btn-group">
-                        <a href="edit-profile.php" class="btn btn-profile">Edit</a>
-                    </div>
                 </div>
             </div>
 
@@ -645,10 +622,10 @@ $user_badge = $user_types[$user_email] ?? 'User';
 
         </div>
         <div id="your-art-content" style="display: none;">
-            <h2 class="mb-4 h4 fw-bold">Your Original Challenges</h2>
+            <h2 class="mb-4 h4 fw-bold"><?php echo htmlspecialchars($user['user_userName']); ?>'s Original Challenges</h2>
             <div class="row">
                 <?php if (empty($user_challenges)): ?>
-                    <p class="text-muted">You haven't created any challenges yet. <a href="create-challenge.php">Create one now!</a></p>
+                    <p class="text-muted"><?php echo htmlspecialchars($user['user_userName']); ?> hasn't created any challenges yet.</p>
                 <?php else: ?>
                     <?php foreach ($user_challenges as $art): ?>
                         <div class="col-md-4 mb-4">
@@ -666,22 +643,22 @@ $user_badge = $user_types[$user_email] ?? 'User';
         </div>
 
         <div id="history-content" style="display: none;">
-            <h2 class="mb-4 h4 fw-bold">Your Recent Activity</h2>
+            <h2 class="mb-4 h4 fw-bold"><?php echo htmlspecialchars($user['user_userName']); ?>'s Recent Activity</h2>
             <?php if (empty($user_history)): ?>
-                <p class="text-muted">You have no recent activity.</p>
+                <p class="text-muted"><?php echo htmlspecialchars($user['user_userName']); ?> has no recent activity.</p>
             <?php else: ?>
                 <?php foreach ($user_history as $event): ?>
                     <div class="log-item">
                         <?php if ($event['event_type'] === 'created_challenge'): ?>
                             <div class="log-icon"><i class="fas fa-plus-circle"></i></div>
                             <div class="log-content">
-                                <p>You created the challenge <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>.</p>
+                                <p><?php echo htmlspecialchars($user['user_userName']); ?> created the challenge <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>.</p>
                                 <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
                         <?php elseif ($event['event_type'] === 'posted_comment'): ?>
                             <div class="log-icon"><i class="fas fa-comment"></i></div>
                             <div class="log-content">
-                                <p>You commented on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>: "<?php echo htmlspecialchars($event['event_content']); ?>"</p>
+                                <p><?php echo htmlspecialchars($user['user_userName']); ?> commented on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>: "<?php echo htmlspecialchars($event['event_content']); ?>"</p>
                                 <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
                         <?php endif; ?>
@@ -691,9 +668,9 @@ $user_badge = $user_types[$user_email] ?? 'User';
         </div>
 
         <div id="comments-content" style="display: none;">
-            <h2 class="mb-4 h4 fw-bold">Recent Comments on Your Art</h2>
+            <h2 class="mb-4 h4 fw-bold">Recent Comments on <?php echo htmlspecialchars($user['user_userName']); ?>'s Art</h2>
             <?php if (empty($comments_on_art)): ?>
-                <p class="text-muted">No one has commented on your challenges yet.</p>
+                <p class="text-muted">No one has commented on <?php echo htmlspecialchars($user['user_userName']); ?>'s challenges yet.</p>
             <?php else: ?>
                 <?php foreach ($comments_on_art as $comment): ?>
                     <?php $avatar = !empty($comment['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars($comment['user_profile_pic']) : 'assets/images/blank-profile-picture.png'; ?>
@@ -736,4 +713,5 @@ $user_badge = $user_types[$user_email] ?? 'User';
         });
     </script>
 </body>
+
 </html>

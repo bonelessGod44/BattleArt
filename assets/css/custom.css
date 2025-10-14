@@ -241,3 +241,25 @@ a:hover {
     font-size: 1.8rem;
   }
 }
+
+/* Styling for the recent searches suggestion box */
+.search-suggestions-box {
+    position: absolute;
+    top: 100%; /* Position it right below the search bar */
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    border-top: none;
+    border-radius: 0 0 15px 15px;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-suggestions-box.hidden {
+    display: none;
+}
+
+.search-suggestions-box .list-group-item {
+    cursor: pointer;
+}
