@@ -234,6 +234,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-lock" aria-hidden="true"></i></span>
                                         <input type="password" name="password" class="form-control <?php echo (!empty($password_err)) ? 'is-invalid' : ''; ?>" id="password" value="<?php echo $password; ?>" placeholder="Enter password">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                            <i class="bi bi-eye" aria-hidden="true"></i>
+                                        </button>
                                     </div>
                                     <span class="text-danger"><?php echo $password_err; ?></span>
                                 </div>
@@ -242,6 +245,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-lock-fill" aria-hidden="true"></i></span>
                                         <input type="password" name="confirmPassword" class="form-control <?php echo (!empty($confirm_password_err)) ? 'is-invalid' : ''; ?>" id="confirmPassword" value="<?php echo $confirm_password; ?>" placeholder="Re-enter password">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                                            <i class="bi bi-eye" aria-hidden="true"></i>
+                                        </button>
                                     </div>
                                     <span class="text-danger"><?php echo $confirm_password_err; ?></span>
                                 </div>
@@ -278,6 +284,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Password Toggle Script -->
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const password = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            const confirmPassword = document.getElementById('confirmPassword');
+            const icon = this.querySelector('i');
+            
+            if (confirmPassword.type === 'password') {
+                confirmPassword.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                confirmPassword.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    </script>
 </body>
 
 </html>
