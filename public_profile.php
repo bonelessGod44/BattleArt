@@ -1,4 +1,5 @@
 <?php
+session_start();
 // No login is required to view the page, so we remove auth checks here.
 require_once "config.php";
 
@@ -112,7 +113,35 @@ if ($stmt_comments_on_art = $mysqli->prepare($sql_comments_on_art)) {
     $stmt_comments_on_art->close();
 }
 
-$mysqli->close();
+//Rating block
+$avg_rating = 0.0;
+$rating_count = 0;
+$sql_rating = "SELECT AVG(rating_value) as avg_rating, COUNT(*) as rating_count FROM ratings WHERE rated_user_id = ?";
+if ($stmt_rating = $mysqli->prepare($sql_rating)) {
+    $stmt_rating->bind_param("i", $profile_user_id);
+    $stmt_rating->execute();
+    $result = $stmt_rating->get_result()->fetch_assoc();
+    if ($result && $result['rating_count'] > 0) {
+        $avg_rating = round($result['avg_rating'], 1);
+        $rating_count = $result['rating_count'];
+    }
+    $stmt_rating->close();
+}
+
+
+function generate_stars($rating)
+{
+    $rating = round($rating * 2) / 2; // Round to the nearest half (e.g., 3.7 -> 3.5, 3.8 -> 4.0)
+    for ($i = 1; $i <= 5; $i++) {
+        if ($rating >= $i) {
+            echo '<i class="fas fa-star"></i>'; // Full star
+        } elseif ($rating > ($i - 1)) {
+            echo '<i class="fas fa-star-half-alt"></i>'; // Half star
+        } else {
+            echo '<i class="far fa-star"></i>'; // Empty star
+        }
+    }
+}
 
 // This line creates the correct path for the profile picture
 $profilePicPath = !empty($user['user_profile_pic'])
@@ -558,7 +587,7 @@ $user_badge = $user_types[$user['user_email']] ?? 'User';
     <?php require 'partials/navbar.php'; ?>
 
     <div class="profile-container">
-    
+
         <img id="banner-img" src="<?php echo $bannerPicPath; ?>" alt="User Profile Banner" class="profile-banner">
 
         <ul class="nav nav-pills profile-tabs" id="profile-tabs">
@@ -616,8 +645,15 @@ $user_badge = $user_types[$user['user_email']] ?? 'User';
                     <?php echo nl2br(htmlspecialchars($user['user_bio'])); ?>
                 </p>
                 <div class="star-rating">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                    <?php generate_stars($avg_rating); ?>
                 </div>
+                <?php if ($rating_count > 0): ?>
+                    <p class="text-muted mt-2">
+                        <strong><?php echo $avg_rating; ?></strong> average rating from <strong><?php echo $rating_count; ?></strong> user(s).
+                    </p>
+                <?php else: ?>
+                    <p class="text-muted mt-2">This user has no ratings yet.</p>
+                <?php endif; ?>
             </div>
 
         </div>

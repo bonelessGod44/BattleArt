@@ -75,7 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Challenge</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
@@ -91,90 +91,101 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         body {
             background-image: linear-gradient(to bottom, var(--secondary-bg), var(--light-purple));
             font-family: 'Inter', sans-serif;
-            padding-top: 20px;
+            padding-top: 30px;
         }
 
-        .navbar-custom {
-            background-color: var(--primary-bg);
-        }
-
-        .form-card {
-            background-color: #fff;
+        /* Custom styles for Bootstrap components */
+        .card {
+            border: none;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             color: var(--text-dark);
         }
 
-        .input-style {
+        .form-control,
+        .form-select {
             border: 2px solid #ddd;
             border-radius: 10px;
             padding: 10px;
             transition: border-color 0.2s;
         }
 
-        .input-style:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: var(--primary-bg);
+            box-shadow: 0 0 0 0.25rem rgba(140, 118, 236, 0.25);
             outline: none;
         }
 
         .btn-submit {
             background-color: var(--primary-bg);
+            border-color: var(--primary-bg);
+            color: white;
             transition: background-color 0.2s ease;
         }
 
         .btn-submit:hover {
             background-color: #7b68ee;
+            border-color: #7b68ee;
+            color: white;
         }
 
         .btn-cancel {
             background-color: #e5e7eb;
             color: var(--text-dark);
+            border-color: #e5e7eb;
             transition: background-color 0.2s ease;
         }
 
         .btn-cancel:hover {
             background-color: #d1d5db;
+            border-color: #d1d5db;
         }
 
         .drop-zone {
             border: 3px dashed var(--light-purple);
             background-color: #f7f7ff;
             transition: background-color 0.2s, border-color 0.2s;
+            cursor: pointer;
         }
 
         .drop-zone.drag-over {
             border-color: var(--primary-bg);
             background-color: #e6e0fc;
         }
+
+        textarea.form-control {
+            resize: none;
+        }
     </style>
 </head>
 
-<body class="min-h-screen font-sans">
+<body class="min-vh-100">
     <?php include 'partials/navbar.php'; ?>
-    <div class="container mx-auto p-4 md:p-8 my-8">
-        <h1 class="text-3xl font-bold text-white mb-6 text-center">Start a New Creative Challenge</h1>
+    <div class="container my-5">
+        <h1 class="fw-bold text-white mb-5 text-center">Start a New Creative Challenge</h1>
 
-        <div class="form-card max-w-3xl mx-auto p-6 md:p-10 relative">
+        <div class="card shadow-lg mx-auto p-4 p-md-5" style="max-width: 50rem;">
 
             <?php
             if (isset($_SESSION['error_message'])) {
-                echo "<div class='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6' role='alert'>" . $_SESSION['error_message'] . "</div>";
+                echo "<div class='alert alert-danger mb-4' role='alert'>" . htmlspecialchars($_SESSION['error_message']) . "</div>";
                 unset($_SESSION['error_message']);
             }
             ?>
 
             <form id="challengeForm" action="createchallenge.php" method="post" enctype="multipart/form-data">
 
-                <div class="mb-6">
-                    <label for="challengeName" class="block text-lg font-semibold mb-2">Challenge Name</label>
+                <div class="mb-4">
+                    <label for="challengeName" class="form-label fs-5 fw-semibold">Challenge Name</label>
                     <input type="text" id="challengeName" name="challengeName"
-                        placeholder="E.g., Cyberpunk Samurai, Magical Artifact, etc." class="input-style w-full"
+                        placeholder="E.g., Cyberpunk Samurai, Magical Artifact, etc." class="form-control form-control-lg"
                         required>
                 </div>
 
-                <div class="mb-6">
-                    <label for="category" class="block text-lg font-semibold mb-2">Category</label>
-                    <select id="category" name="category" class="input-style w-full" required>
+                <div class="mb-4">
+                    <label for="category" class="form-label fs-5 fw-semibold">Category</label>
+                    <select id="category" name="category" class="form-select form-select-lg" required>
                         <option value="" disabled selected>Select a category</option>
                         <option value="digital_painting">Digital Painting</option>
                         <option value="sci-fi">Sci-Fi</option>
@@ -185,60 +196,47 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     </select>
                 </div>
 
-                <div class="mb-6">
-                    <label for="artFile" class="block text-lg font-semibold mb-2">Upload Original Art</label>
+                <div class="mb-4">
+                    <label for="artFile" class="form-label fs-5 fw-semibold">Upload Original Art</label>
                     <div id="dropZone"
-                        class="drop-zone p-8 text-center rounded-xl cursor-pointer flex flex-col items-center justify-center">
-                        <i class="fas fa-upload text-4xl text-gray-500 mb-3"></i>
-                        <p class="text-gray-700 font-medium">Drag & Drop your image here, or click to select file.</p>
-                        <input type="file" id="artFile" name="artFile" accept="image/*" class="hidden" required
+                        class="drop-zone p-5 text-center rounded-3 d-flex flex-column align-items-center justify-content-center">
+                        <i class="fas fa-upload fs-1 text-secondary mb-3"></i>
+                        <p class="text-body-secondary fw-medium">Drag & Drop your image here, or click to select file.</p>
+                        <input type="file" id="artFile" name="artFile" accept="image/*" class="d-none" required
                             onchange="handleFileSelect(this)">
                     </div>
-                    <div id="filePreviewContainer" class="mt-4 hidden border rounded-lg p-2 bg-gray-50">
-                        <p id="fileNameDisplay" class="text-sm font-medium text-gray-700 mb-2"></p>
-                        <img id="imagePreview" class="w-full max-h-64 object-contain rounded-lg shadow-md mx-auto"
-                            alt="Art Preview">
+                    <div id="filePreviewContainer" class="mt-4 d-none border rounded-3 p-2 bg-light">
+                        <p id="fileNameDisplay" class="small fw-medium text-body-secondary mb-2"></p>
+                        <img id="imagePreview" class="img-fluid rounded-3 shadow-sm mx-auto d-block"
+                            style="max-height: 256px;" alt="Art Preview">
                     </div>
                 </div>
 
-                <div class="mb-8">
-                    <label for="challengeDescription" class="block text-lg font-semibold mb-2">Description</label>
+                <div class="mb-5">
+                    <label for="challengeDescription" class="form-label fs-5 fw-semibold">Description</label>
                     <textarea id="challengeDescription" name="challengeDescription" rows="4"
                         placeholder="Describe your artwork and provide guidelines or inspiration..."
-                        class="input-style w-full resize-none" required></textarea>
+                        class="form-control form-control-lg" required></textarea>
                 </div>
 
-                <div class="flex justify-end space-x-4">
+                <div class="d-flex justify-content-end gap-3">
                     <button type="button" onclick="handleCancel()"
-                        class="btn-cancel py-2 px-6 rounded-full font-bold shadow-md">
-                        <i class="fas fa-times-circle mr-2"></i> Cancel
+                        class="btn btn-cancel rounded-pill py-2 px-4 fw-bold shadow-sm">
+                        <i class="fas fa-times-circle me-2"></i> Cancel
                     </button>
-                    <button type="submit" class="btn-submit text-white py-2 px-6 rounded-full font-bold shadow-md">
-                        <i class="fas fa-paper-plane mr-2"></i> Submit Challenge
+                    <button type="submit" class="btn btn-submit rounded-pill py-2 px-4 fw-bold shadow-sm">
+                        <i class="fas fa-paper-plane me-2"></i> Submit Challenge
                     </button>
                 </div>
             </form>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         window.onload = () => {
             setupDragDrop();
         };
-
-        function handleChallengeSubmit(event) {
-            event.preventDefault();
-
-            const challengeName = document.getElementById('challengeName').value;
-            const file = document.getElementById('artFile').files[0];
-
-            console.log("--- Form Submission Attempted ---");
-            console.log("Challenge Name:", challengeName);
-            console.log("File Name:", file ? file.name : 'No file selected');
-            console.log("Action: Data would be sent to a server-side script (e.g., PHP) for processing and saving.");
-            console.log("---------------------------------");
-
-            showSubmissionResult(true, `Challenge "${challengeName}" submitted successfully (client-side simulation). A PHP backend would handle the persistence.`);
-        }
 
         function setupDragDrop() {
             const dropZone = document.getElementById('dropZone');
@@ -282,43 +280,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             const previewContainer = document.getElementById('filePreviewContainer');
             const fileNameDisplay = document.getElementById('fileNameDisplay');
             const imagePreview = document.getElementById('imagePreview');
+            const dropZone = document.getElementById('dropZone');
 
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     imagePreview.src = e.target.result;
-                    previewContainer.classList.remove('hidden');
+                    previewContainer.classList.remove('d-none');
                 };
                 reader.readAsDataURL(file);
                 fileNameDisplay.textContent = `Selected file: ${file.name}`;
-                document.getElementById('dropZone').classList.add('hidden');
+                dropZone.classList.add('d-none');
             } else {
-                previewContainer.classList.add('hidden');
-                document.getElementById('dropZone').classList.remove('hidden');
+                previewContainer.classList.add('d-none');
+                dropZone.classList.remove('d-none');
             }
         }
 
         function handleCancel() {
             window.location.href = 'listofarts.php';
-        }
-
-        // Displays a custom result message instead of an alert
-        function showSubmissionResult(isSuccess, message) {
-            const formContainer = document.getElementById('mainFormContainer');
-            const iconClass = isSuccess ? 'fas fa-check-circle text-green-500' : 'fas fa-times-circle text-red-500';
-            const buttonText = isSuccess ? 'Return to Form' : 'Try Again';
-            const buttonAction = isSuccess ? 'window.location.reload()' : 'window.location.reload()'; // Reload to reset the form
-
-            formContainer.innerHTML = `
-                <div class="text-center p-8">
-                    <i class="${iconClass} text-6xl mb-4"></i>
-                    <h2 class="text-2xl font-bold mb-2">${isSuccess ? 'Submission Simulated' : 'Submission Failed'}</h2>
-                    <p class="text-gray-600 mb-6">${message}</p>
-                    <button onclick="${buttonAction}" class="btn-submit text-white py-2 px-6 rounded-full font-bold shadow-md">
-                        ${buttonText}
-                    </button>
-                </div>
-            `;
         }
     </script>
 </body>

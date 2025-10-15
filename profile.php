@@ -118,7 +118,33 @@ if ($stmt_comments_on_art = $mysqli->prepare($sql_comments_on_art)) {
     $stmt_comments_on_art->close();
 }
 
-$mysqli->close();
+$avg_rating = 0.0;
+$rating_count = 0;
+$sql_rating = "SELECT AVG(rating_value) as avg_rating, COUNT(*) as rating_count FROM ratings WHERE rated_user_id = ?";
+if ($stmt_rating = $mysqli->prepare($sql_rating)) {
+    $stmt_rating->bind_param("i", $user_id);
+    $stmt_rating->execute();
+    $result = $stmt_rating->get_result()->fetch_assoc();
+    if ($result && $result['rating_count'] > 0) {
+        $avg_rating = round($result['avg_rating'], 1);
+        $rating_count = $result['rating_count'];
+    }
+    $stmt_rating->close();
+}
+
+function generate_stars($rating)
+{
+    $rating = round($rating * 2) / 2; // Round to nearest half
+    for ($i = 1; $i <= 5; $i++) {
+        if ($rating >= $i) {
+            echo '<i class="fas fa-star"></i>'; // Full star
+        } elseif ($rating > ($i - 1) && $rating < $i) {
+            echo '<i class="fas fa-star-half-alt"></i>'; // Half star
+        } else {
+            echo '<i class="far fa-star"></i>'; // Empty star
+        }
+    }
+}
 
 // This line creates the correct path for the profile picture
 $profilePicPath = !empty($user['user_profile_pic'])
@@ -567,7 +593,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
         <!-- Session Welcome Message -->
         <div class="session-info">
             <i class="fas fa-check-circle me-2" style="color: #28a745;"></i>
-            <strong>Welcome back, <?php echo htmlspecialchars($user['user_userName']); ?>!</strong>
+            <strong>Welcome, <?php echo htmlspecialchars($user['user_userName']); ?>!</strong>
             You are logged in as <strong><?php echo htmlspecialchars($user_email); ?></strong>
             <br><small>Logged in: <?php echo date('Y-m-d H:i:s', $user_info['login_time']); ?></small>
         </div>
@@ -635,12 +661,19 @@ $user_badge = $user_types[$user_email] ?? 'User';
 
             <div class="welcome-section">
                 <h4>Welcome to <?php echo htmlspecialchars($user['user_userName']); ?>'s art battle profile!</h4>
-                <p>
-                    <?php echo nl2br(htmlspecialchars($user['user_bio'])); ?>
-                </p>
+                <p><?php echo nl2br(htmlspecialchars($user['user_bio'])); ?></p>
+
+                <!-- THIS IS THE DYNAMIC STAR RATING SECTION -->
                 <div class="star-rating">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                    <?php generate_stars($avg_rating); ?>
                 </div>
+                <?php if ($rating_count > 0): ?>
+                    <p class="text-muted mt-2">
+                        <strong><?php echo $avg_rating; ?></strong> average rating from <strong><?php echo $rating_count; ?></strong> user(s).
+                    </p>
+                <?php else: ?>
+                    <p class="text-muted mt-2">No ratings yet.</p>
+                <?php endif; ?>
             </div>
 
         </div>
@@ -736,4 +769,5 @@ $user_badge = $user_types[$user_email] ?? 'User';
         });
     </script>
 </body>
+<?php $mysqli->close();?>
 </html>

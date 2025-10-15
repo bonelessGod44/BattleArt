@@ -2,37 +2,48 @@
 session_start();
 require_once "config.php";
 require_once "auth_check.php";
-requireLogin();
 
 $challenge_id = isset($_GET['challenge_id']) ? (int)$_GET['challenge_id'] : 0;
-if ($challenge_id === 0) {
-    die("Error: Invalid Challenge ID provided.");
-}
+if ($challenge_id === 0) die("Invalid Challenge ID.");
 
-//Fetch the original challenge details to display the name
+// Get the ID of the person viewing the page (will be null for guests)
+$viewer_user_id = $_SESSION['user_id'] ?? null;
+
+// Fetch challenge name for the header
+$challenge = null;
 $challenge_sql = "SELECT challenge_name FROM challenges WHERE challenge_id = ?";
-$stmt_challenge = $mysqli->prepare($challenge_sql);
-$stmt_challenge->bind_param("i", $challenge_id);
-$stmt_challenge->execute();
-$challenge = $stmt_challenge->get_result()->fetch_assoc();
-$stmt_challenge->close();
-
-if (!$challenge) {
-    die("Error: Challenge not found.");
+if ($stmt_challenge = $mysqli->prepare($challenge_sql)) {
+    $stmt_challenge->bind_param("i", $challenge_id);
+    $stmt_challenge->execute();
+    $challenge = $stmt_challenge->get_result()->fetch_assoc();
+    $stmt_challenge->close();
 }
+if (!$challenge) die("Challenge not found.");
 
-//Fetch ALL interpretations for this challenge
+// Fetches interpretations, like counts, and if the current viewer has liked each one.
 $interpretations = [];
-$interp_sql = "SELECT i.*, u.user_userName FROM interpretations i JOIN users u ON i.user_id = u.user_id WHERE i.challenge_id = ? ORDER BY i.created_at DESC";
-$interp_stmt = $mysqli->prepare($interp_sql);
-$interp_stmt->bind_param("i", $challenge_id);
-$interp_stmt->execute();
-$result = $interp_stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $interpretations[] = $row;
+$sql = "SELECT 
+            i.*, 
+            u.user_id,
+            u.user_userName, 
+            u.user_profile_pic,
+            (SELECT COUNT(*) FROM interpretation_likes WHERE interpretation_id = i.interpretation_id) as like_count,
+            (SELECT COUNT(*) FROM interpretation_likes WHERE interpretation_id = i.interpretation_id AND user_id = ?) as user_has_liked
+        FROM interpretations i 
+        JOIN users u ON i.user_id = u.user_id 
+        WHERE i.challenge_id = ? 
+        ORDER BY i.created_at DESC";
+
+if ($stmt = $mysqli->prepare($sql)) {
+    $viewer_id_for_query = $viewer_user_id ?? 0;
+    $stmt->bind_param("ii", $viewer_id_for_query, $challenge_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $interpretations[] = $row;
+    }
+    $stmt->close();
 }
-$interp_stmt->close();
-$mysqli->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,38 +52,34 @@ $mysqli->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Interpretations for <?php echo htmlspecialchars($challenge['challenge_name']); ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/navbar.css">
+    <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
     <style>
         :root {
             --primary-bg: #8c76ec;
             --secondary-bg: #a6e7ff;
             --light-purple: #c3b4fc;
-            --text-dark: #333;
         }
 
         body {
             background-image: linear-gradient(to bottom, var(--secondary-bg), var(--light-purple));
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-        }
-
-        .navbar-custom {
-            background-color: var(--primary-bg);
+            padding-top: 20px;
         }
 
         .card {
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            color: var(--text-dark);
+            border-radius: 20px;
+            border: none;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
         .interpretation-card {
@@ -82,68 +89,147 @@ $mysqli->close();
 </head>
 
 <body class="font-sans">
+    <?php require 'partials/navbar.php'; ?>
 
-    <nav class="navbar-custom p-4 flex justify-between items-center text-white shadow-lg">
-        <div class="flex items-center">
-            <a class="flex items-center space-x-3 text-white font-bold text-xl" href="index.php">
-                <i class="fas fa-home text-white"></i>
-                <span>BattleArt</span>
-            </a>
-        </div>
-        <div class="flex items-center space-x-4">
-            <a class="nav-link-custom flex items-center space-x-2 text-white font-medium" href="#">
-                <i class="fas fa-inbox"></i>
-                <span>Inbox</span>
-            </a>
-            <a class="nav-link-custom flex items-center space-x-2 text-white font-medium" href="profile.php">
-                <i class="fas fa-user"></i>
-                <span>Profile</span>
-            </a>
-            <a class="nav-link-custom flex items-center space-x-2 text-white font-medium" href="logout.php">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-    </nav>
-
-    <div class="container mx-auto p-8 my-8">
-        <header class="text-center mb-8 bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
-            <h1 class="text-3xl font-bold text-gray-800">All Interpretations</h1>
-            <p class="text-gray-600 mt-2">For the challenge: <strong class="text-purple-600"><?php echo htmlspecialchars($challenge['challenge_name']); ?></strong></p>
+    <div class="container my-5">
+        <header class="text-center mb-5 bg-white p-4 rounded-3 shadow-sm mx-auto" style="max-width: 600px;">
+            <h1 class="h3 fw-bold text-dark">All Interpretations</h1>
+            <p class="text-muted mb-0">For the challenge: <strong style="color: var(--primary-bg);"><?php echo htmlspecialchars($challenge['challenge_name']); ?></strong></p>
         </header>
 
         <section>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
                 <?php if (empty($interpretations)): ?>
-                    <div class="col-span-full text-center py-10 bg-white/20 rounded-lg">
-                        <p class="text-white font-semibold">No interpretations have been submitted for this challenge yet.</p>
+                    <div class="col-12">
+                        <div class="alert alert-light text-center">No interpretations have been submitted yet.</div>
                     </div>
                 <?php else: ?>
                     <?php foreach ($interpretations as $interp): ?>
-                        <div class="card interpretation-card p-4 rounded-lg shadow-md flex flex-col">
-                            <div class="flex items-center space-x-3 mb-2">
-                                <i class="fas fa-user-circle text-2xl text-purple-600"></i>
-                                <span class="font-bold text-gray-800"><?php echo htmlspecialchars($interp['user_userName']); ?></span>
+                        <?php $interpAvatarPath = !empty($interp['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars($interp['user_profile_pic']) : 'assets/images/default-avatar.png'; ?>
+                        <div class="col">
+                            <div class="card h-100 interpretation-card" data-interpretation-id="<?php echo $interp['interpretation_id']; ?>">
+                                <div class="card-body d-flex flex-column">
+                                    <a href="public_profile.php?user_id=<?php echo $interp['user_id']; ?>" class="d-flex align-items-center mb-2 text-decoration-none">
+                                        <img src="<?php echo $interpAvatarPath; ?>" alt="<?php echo htmlspecialchars($interp['user_userName']); ?>'s avatar" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
+                                        <span class="fw-bold small text-dark"><?php echo htmlspecialchars($interp['user_userName']); ?></span>
+                                    </a>
+                                    <a href="#" class="d-block" data-bs-toggle="modal" data-bs-target="#interpretationModal"
+                                        data-img-src="assets/uploads/<?php echo htmlspecialchars($interp['art_filename']); ?>"
+                                        data-artist-name="<?php echo htmlspecialchars($interp['user_userName']); ?>"
+                                        data-artist-avatar="<?php echo $interpAvatarPath; ?>"
+                                        data-artist-id="<?php echo $interp['user_id']; ?>"
+                                        data-description="<?php echo htmlspecialchars($interp['description']); ?>"
+                                        data-interpretation-id="<?php echo $interp['interpretation_id']; ?>"
+                                        data-like-count="<?php echo $interp['like_count']; ?>"
+                                        data-user-has-liked="<?php echo $interp['user_has_liked']; ?>">
+                                        <img class="img-fluid rounded shadow-sm mb-3" src="assets/uploads/<?php echo htmlspecialchars($interp['art_filename']); ?>" alt="Interpretation">
+                                    </a>
+                                    <p class="card-text small fst-italic text-muted mt-auto">
+                                        <?php if (!empty($interp['description'])) echo '"' . htmlspecialchars($interp['description']) . '"'; ?>
+                                    </p>
+                                    <div class="mt-3 pt-2 border-top text-muted small">
+                                        <i class="fas fa-heart <?php echo ($interp['user_has_liked'] > 0) ? 'text-danger' : 'text-secondary'; ?>"></i>
+                                        <span class="ms-1 card-like-count"><?php echo $interp['like_count']; ?></span>
+                                    </div>
+                                </div>
                             </div>
-                            <img class="w-full h-auto rounded-lg shadow-sm mb-3" src="assets/uploads/<?php echo htmlspecialchars($interp['art_filename']); ?>" alt="Interpretation">
-                            <?php
-                            if (!empty($interp['description'])) {
-                                echo '"' . htmlspecialchars($interp['description']) . '"';
-                            }
-                            ?>
-                            </p>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
-
             </div>
         </section>
 
-        <a href="challengepage.php?id=<?php echo $challenge_id; ?>" class="fixed bottom-8 right-8 z-50 bg-white text-gray-700 py-2 px-6 rounded-full font-bold shadow-lg hover:bg-gray-200 transition flex items-center">
-            <i class="fas fa-arrow-left mr-2"></i> Back to Challenge Page
+        <a href="challengepage.php?id=<?php echo $challenge_id; ?>" class="btn btn-light shadow position-fixed bottom-0 end-0 m-3">
+            <i class="fas fa-arrow-left me-2"></i> Back to Challenge Page
         </a>
     </div>
+
+    <div class="modal fade" id="interpretationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div id="modalArtistInfo"></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="modalImage" src="" class="img-fluid rounded mb-3">
+                    <p id="modalDescription" class="fst-italic text-muted"></p>
+                </div>
+                <div class="modal-footer" id="modalFooterActions"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-container"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function showLoginPromptModal(title, message) {
+            /* Your existing modal function */ }
+
+        const interpretationModal = document.getElementById('interpretationModal');
+        interpretationModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const isUserLoggedIn = <?php echo json_encode(isset($viewer_user_id)); ?>;
+
+            const interpretationId = button.getAttribute('data-interpretation-id');
+            const imgSrc = button.getAttribute('data-img-src');
+            const artistName = button.getAttribute('data-artist-name');
+            const artistAvatar = button.getAttribute('data-artist-avatar');
+            const artistId = button.getAttribute('data-artist-id');
+            const description = button.getAttribute('data-description');
+            let likeCount = parseInt(button.getAttribute('data-like-count'));
+            let userHasLiked = button.getAttribute('data-user-has-liked') > 0;
+
+            interpretationModal.querySelector('#modalImage').src = imgSrc;
+            interpretationModal.querySelector('#modalArtistInfo').innerHTML = `<a href="public_profile.php?user_id=${artistId}" class="d-flex align-items-center text-decoration-none text-dark"><img src="${artistAvatar}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;"> <span class="fw-bold">${artistName}</span></a>`;
+            interpretationModal.querySelector('#modalDescription').innerHTML = description ? `"${description}"` : '';
+
+            const footer = interpretationModal.querySelector('#modalFooterActions');
+            footer.innerHTML = `<a href="#" id="modalLikeBtn" class="btn btn-outline-danger"><i class="fas fa-heart ${userHasLiked ? 'text-danger' : ''}"></i> <span class="ms-1">${likeCount}</span></a>`;
+
+            document.getElementById('modalLikeBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!isUserLoggedIn) {
+                    showLoginPromptModal('Login Required', 'You must be logged in to like an interpretation.');
+                    return;
+                }
+
+                const icon = this.querySelector('i');
+                const countSpan = this.querySelector('span');
+                const formData = new FormData();
+                formData.append('interpretation_id', interpretationId);
+
+                fetch('handle_interpretation_like.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            countSpan.textContent = data.likeCount;
+                            userHasLiked = data.userHasLiked;
+
+                            if (userHasLiked) icon.classList.add('text-danger');
+                            else icon.classList.remove('text-danger');
+
+                            const originalCard = document.querySelector(`.card[data-interpretation-id="${interpretationId}"]`);
+                            if (originalCard) {
+                                originalCard.querySelector('.card-like-count').textContent = data.likeCount;
+                                const originalIcon = originalCard.querySelector('.fa-heart');
+                                if (userHasLiked) {
+                                    originalIcon.classList.remove('text-secondary');
+                                    originalIcon.classList.add('text-danger');
+                                } else {
+                                    originalIcon.classList.remove('text-danger');
+                                    originalIcon.classList.add('text-secondary');
+                                }
+                            }
+                        }
+                    });
+            });
+        });
+    </script>
 </body>
 
 </html>

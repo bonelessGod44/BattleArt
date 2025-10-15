@@ -42,7 +42,6 @@ if (!empty($search_query)) {
     }
 }
 
-$mysqli->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">

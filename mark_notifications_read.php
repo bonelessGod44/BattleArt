@@ -6,15 +6,29 @@ requireLogin();
 
 $user_id = $_SESSION['user_id'];
 
-// Update all unread notifications for the user to be 'read'
-$sql = "UPDATE notifications SET is_read = 1 WHERE recipient_user_id = ? AND is_read = 0";
-if ($stmt = $mysqli->prepare($sql)) {
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $stmt->close();
-}
-$mysqli->close();
+if (isset($_GET['notification_id']) && !empty($_GET['notification_id'])) {
+    $notification_id = $_GET['notification_id'];
+    $sql = "UPDATE notifications SET is_read = 1 WHERE notification_id = ? AND recipient_user_id = ?";
+    
+    if ($stmt = $mysqli->prepare($sql)) {
+        $stmt->bind_param("ii", $notification_id, $user_id);
+        $stmt->execute();
+        $stmt->close();
+    }
 
-// Redirect back to the notifications page
-header("Location: notification.php");
-exit;
+    $destination = isset($_GET['destination']) ? $_GET['destination'] : 'notifications.php';
+    header("Location: " . $destination);
+    exit;
+
+} else {
+    $sql = "UPDATE notifications SET is_read = 1 WHERE recipient_user_id = ? AND is_read = 0";
+    
+    if ($stmt = $mysqli->prepare($sql)) {
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    
+    header("Location: notifications.php");
+    exit;
+}

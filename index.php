@@ -1,5 +1,38 @@
 <?php
 session_start();
+require_once "config.php"; // Connect to the database
+
+//FETCH TOP 4 TRENDING CHALLENGES
+$trending_challenges = [];
+
+// This query calculates a "trending_score" by counting all interactions (likes, comments, interpretations)
+// and then selects the top 4 challenges with the highest scores.
+$sql = "SELECT 
+            c.challenge_id,
+            c.user_id,
+            c.challenge_name,
+            c.original_art_filename,
+            u.user_userName,
+            COUNT(DISTINCT l.like_id) AS like_count,
+            COUNT(DISTINCT co.comment_id) AS comment_count,
+            (COUNT(DISTINCT l.like_id) + COUNT(DISTINCT co.comment_id) + COUNT(DISTINCT i.interpretation_id)) AS trending_score
+        FROM challenges c
+        JOIN users u ON c.user_id = u.user_id
+        LEFT JOIN likes l ON c.challenge_id = l.challenge_id
+        LEFT JOIN comments co ON c.challenge_id = co.challenge_id
+        LEFT JOIN interpretations i ON c.challenge_id = i.challenge_id
+        GROUP BY c.challenge_id
+        ORDER BY trending_score DESC
+        LIMIT 4";
+
+if ($result = $mysqli->query($sql)) {
+    while ($row = $result->fetch_assoc()) {
+        $trending_challenges[] = $row;
+    }
+    $result->free();
+}
+
+$viewer_id = $_SESSION['user_id'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -521,35 +554,7 @@ session_start();
 </head>
 
 <body>
-
-    <?php if (isset($_SESSION['user_id'])): ?>
-        <?php require 'partials/navbar.php'; ?>
-    <?php else: ?>
-        <nav class="navbar navbar-expand-lg navbar-custom">
-            <div class="container-fluid">
-                <a class="navbar-brand d-flex align-items-center" href="index.php">
-                    <i class="fas fa-house me-1"></i>
-                    BattleArt
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon">
-                        <img src="assets/images/hamburg.png" alt="Menu Icon" style="width: 24px; height: 24px;">
-                    </span>
-                </button>
-                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                    <ul class="navbar-nav">
-                        <li class="nav-item me-2 me-lg-0">
-                            <a href="./register.php" class="btn btn-signup-custom">Sign up</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="./login.php" class="btn btn-login-custom">Log In</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    <?php endif; ?>
-
+    <?php require 'partials/navbar.php'; ?>
     <div class="main-banner-area">
         <header class="hero-section">
             <div class="container">
@@ -583,82 +588,44 @@ session_start();
         <h2 class="trending-title">TRENDING</h2>
 
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 justify-content-center">
-            <div class="col">
-                <div class="placeholder-card">
-                    <div class="trending-card-content">
-                        <img src="assets/images/Potential Man.jpg" alt="Trending Art 1" class="trending-card-image">
-                        <h5 class="trending-card-title">Potential Man</h5>
-                        <div class="social-icons">
-                            <div class="social-item">
-                                <i class="fas fa-heart social-icon"></i>
-                                <span>1.2K</span>
-                            </div>
-                            <div class="social-item">
-                                <i class="fas fa-comment social-icon"></i>
-                                <span>250</span>
+            <?php if (empty($trending_challenges)): ?>
+                <div class="col-12">
+                    <p class="text-center text-muted">No trending challenges found yet. Be the first to start one!</p>
+                </div>
+            <?php else: ?>
+                <?php foreach ($trending_challenges as $challenge): ?>
+                    <div class="col">
+                        <div class="placeholder-card">
+                            <div class="trending-card-content">
+                                <a href="challengepage.php?id=<?php echo $challenge['challenge_id']; ?>">
+                                    <img src="assets/uploads/<?php echo htmlspecialchars($challenge['original_art_filename']); ?>" alt="<?php echo htmlspecialchars($challenge['challenge_name']); ?>" class="trending-card-image">
+                                </a>
+                                <h5 class="trending-card-title"><?php echo htmlspecialchars($challenge['challenge_name']); ?></h5>
+                                <p class="text-muted small mb-2">by <?php echo htmlspecialchars($challenge['user_userName']); ?></p>
+                                <div class="social-icons">
+                                    <div class="social-item">
+                                        <i class="fas fa-heart social-icon text-danger"></i>
+                                        <span><?php echo $challenge['like_count']; ?></span>
+                                    </div>
+                                    <div class="social-item">
+                                        <i class="fas fa-comment social-icon text-primary"></i>
+                                        <span><?php echo $challenge['comment_count']; ?></span>
+                                    </div>
+                                </div>
+                                <?php
+                                // Check if the person viewing the page is the owner or a guest
+                                if ($viewer_id && $viewer_id == $challenge['user_id']) {
+                                    echo '<a href="challengepage.php?id=' . $challenge['challenge_id'] . '" class="btn btn-challenge-custom mt-auto">View Challenge</a>';
+                                } else {
+                                    $link = $viewer_id ? 'create_interpretation.php?challenge_id=' . $challenge['challenge_id'] : 'login.php';
+                                    echo '<a href="' . $link . '" class="btn btn-challenge-custom mt-auto">Challenge!</a>';
+                                }
+                                ?>
                             </div>
                         </div>
-                        <button class="btn btn-challenge-custom">Challenge!</button>
                     </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="placeholder-card">
-                    <div class="trending-card-content">
-                        <img src="assets/images/Yamino.jpg" alt="Trending Art 2" class="trending-card-image">
-                        <h5 class="trending-card-title">Yamino-Onoki</h5>
-                        <div class="social-icons">
-                            <div class="social-item">
-                                <i class="fas fa-heart social-icon"></i>
-                                <span>980</span>
-                            </div>
-                            <div class="social-item">
-                                <i class="fas fa-comment social-icon"></i>
-                                <span>180</span>
-                            </div>
-                        </div>
-                        <button class="btn btn-challenge-custom">Challenge!</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="placeholder-card">
-                    <div class="trending-card-content">
-                        <img src="assets/images/Utaro.jpg" alt="Trending Art 3" class="trending-card-image">
-                        <h5 class="trending-card-title">Akun Utaro</h5>
-                        <div class="social-icons">
-                            <div class="social-item">
-                                <i class="fas fa-heart social-icon"></i>
-                                <span>1.5K</span>
-                            </div>
-                            <div class="social-item">
-                                <i class="fas fa-comment social-icon"></i>
-                                <span>300</span>
-                            </div>
-                        </div>
-                        <button class="btn btn-challenge-custom">Challenge!</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="placeholder-card">
-                    <div class="trending-card-content">
-                        <img src="assets/images/Aisha.png" alt="Trending Art 4" class="trending-card-image">
-                        <h5 class="trending-card-title">Aisha Athens</h5>
-                        <div class="social-icons">
-                            <div class="social-item">
-                                <i class="fas fa-heart social-icon"></i>
-                                <span>850</span>
-                            </div>
-                            <div class="social-item">
-                                <i class="fas fa-comment social-icon"></i>
-                                <span>120</span>
-                            </div>
-                        </div>
-                        <button class="btn btn-challenge-custom">Challenge!</button>
-                    </div>
-                </div>
-            </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
 
         <hr class="my-5 border-2 border-primary-bg opacity-75">

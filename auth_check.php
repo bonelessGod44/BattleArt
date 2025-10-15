@@ -1,9 +1,4 @@
 <?php
-/**
- * Authentication check function
- * Include this file in pages that require authentication
- */
-
 // Start the session if it's not already started.
 if (session_status() == PHP_SESSION_NONE) {
     session_start();

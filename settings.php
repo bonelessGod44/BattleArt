@@ -98,7 +98,6 @@ if ($stmt = $mysqli->prepare($sql)) {
     $stmt->close();
 }
 if (!$user) die("Could not load user data.");
-$mysqli->close();
 
 // Check for a feedback message from the session
 if (isset($_SESSION['message'])) {
@@ -276,36 +275,7 @@ if (isset($_SESSION['message'])) {
 
 <body>
 
-    <!-- Top Navbar (BattleArt Left, Links Right) -->
-    <nav class="custom-navbar navbar navbar-expand">
-        <div class="container-fluid" style="max-width: 1000px;">
-            <!-- LEFT: BattleArt Logo -->
-            <a class="navbar-brand d-flex align-items-center" href="index.php">
-                <i class="fas fa-house me-1"></i>
-                BattleArt
-            </a>
-
-            <!-- RIGHT: Links (Pushed using ms-auto) -->
-            <div class="ms-auto d-flex align-items-center">
-                <a class="nav-link d-none d-md-block" href="notification.php">
-                    <i class="fas fa-inbox me-1"></i>
-                    Inbox
-                </a>
-                <a class="nav-link d-none d-md-block" href="profile.php">
-                    <i class="fas fa-user-circle me-1"></i>
-                    Profile
-                </a>
-                <a class="nav-link d-none d-md-block" href="settings.php">
-                    <i class="fas fa-cog me-1"></i>
-                    Settings
-                </a>
-                <a class="nav-link" href="logout.php">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    Logout
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php include 'partials/navbar.php'; ?>
 
     <!-- Main Content Card -->
     <div class="settings-container">
@@ -403,11 +373,11 @@ if (isset($_SESSION['message'])) {
     <div id="message-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    function showMessage(title, message, isError = false) {
-        const container = document.getElementById('message-container');
-        const modalId = `messageModal_${Date.now()}`; // Unique ID to prevent conflicts
+        function showMessage(title, message, isError = false) {
+            const container = document.getElementById('message-container');
+            const modalId = `messageModal_${Date.now()}`; // Unique ID to prevent conflicts
 
-        const modalHTML = `
+            const modalHTML = `
             <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-sm modal-dialog-centered">
                     <div class="modal-content rounded-4 shadow-lg">
@@ -425,27 +395,27 @@ if (isset($_SESSION['message'])) {
                 </div>
             </div>
         `;
-        container.innerHTML = modalHTML;
+            container.innerHTML = modalHTML;
 
-        const modalElement = document.getElementById(modalId);
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
+            const modalElement = document.getElementById(modalId);
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
 
-        // Clean up the modal from the DOM after it's hidden to prevent clutter
-        modalElement.addEventListener('hidden.bs.modal', function () {
-            modalElement.remove();
-        });
-    }
+            // Clean up the modal from the DOM after it's hidden to prevent clutter
+            modalElement.addEventListener('hidden.bs.modal', function() {
+                modalElement.remove();
+            });
+        }
 
-    function showConfirmationModal(title, message, confirmText, confirmVariant, callback) {
-        const container = document.getElementById('message-container');
-        const modalId = 'confirmModal';
+        function showConfirmationModal(title, message, confirmText, confirmVariant, callback) {
+            const container = document.getElementById('message-container');
+            const modalId = 'confirmModal';
 
-        // Remove any previous confirm modal to be safe
-        const existingModal = document.getElementById(modalId);
-        if (existingModal) existingModal.remove();
+            // Remove any previous confirm modal to be safe
+            const existingModal = document.getElementById(modalId);
+            if (existingModal) existingModal.remove();
 
-        const modalHTML = `
+            const modalHTML = `
             <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-sm modal-dialog-centered">
                     <div class="modal-content rounded-4 shadow-lg">
@@ -464,26 +434,28 @@ if (isset($_SESSION['message'])) {
                 </div>
             </div>
         `;
-        container.innerHTML = modalHTML;
+            container.innerHTML = modalHTML;
 
-        const modalElement = document.getElementById(modalId);
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
+            const modalElement = document.getElementById(modalId);
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
 
-        // When the confirm button is clicked, hide the modal and run the callback function
-        document.getElementById('confirmActionBtn').onclick = () => {
-            modal.hide();
-            callback(); // Execute the provided action (e.g., performLogout, performDelete)
-        };
+            // When the confirm button is clicked, hide the modal and run the callback function
+            document.getElementById('confirmActionBtn').onclick = () => {
+                modal.hide();
+                callback(); // Execute the provided action (e.g., performLogout, performDelete)
+            };
 
-        // Clean up after the modal is hidden
-        modalElement.addEventListener('hidden.bs.modal', function () {
-            modalElement.remove();
-        });
-    }
+            // Clean up after the modal is hidden
+            modalElement.addEventListener('hidden.bs.modal', function() {
+                modalElement.remove();
+            });
+        }
 
         function toggleNotifications(event) {
             const isEnabled = event.target.checked;
+
+            // Send the update to the server
             fetch('update_preference.php', {
                     method: 'POST',
                     headers: {
@@ -497,8 +469,17 @@ if (isset($_SESSION['message'])) {
                 .then(data => {
                     if (data.success) {
                         showMessage("Preferences", `Notifications have been turned ${isEnabled ? "ON" : "OFF"}.`);
+                        const badge = document.querySelector('.notification-badge');
+
+                        if (!isEnabled && badge) {
+                            badge.style.display = 'none';
+                        } else if (isEnabled) {
+                            window.location.reload();
+                        }
+
                     } else {
                         showMessage("Error", "Could not save preference.", true);
+                        event.target.checked = !isEnabled;
                     }
                 });
         }
