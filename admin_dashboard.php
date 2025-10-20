@@ -256,9 +256,9 @@ function timeAgo($time) {
                 </a>
                 <div class="dropdown">
                     <button class="btn btn-link nav-link-custom dropdown-toggle" type="button" id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<?php echo htmlspecialchars($_SESSION['profile_pic'] ?? 'assets/images/default_avatar.png'); ?>" 
+                        <img src="<?php echo htmlspecialchars($_SESSION['profile_pic'] ?? 'assets/images/$profilePicPath'); ?>" 
                              alt="Admin Avatar" 
-                             class="rounded-circle me-1"
+                             class="rounded-circle me-1"    
                              style="width: 32px; height: 32px; object-fit: cover;">
                         <span class="d-none d-md-inline"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?></span>
                     </button>

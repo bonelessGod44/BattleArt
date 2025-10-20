@@ -97,3 +97,15 @@ CREATE TABLE `users` (
  `allow_notifications` tinyint(1) NOT NULL DEFAULT 1,
  PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+CREATE TABLE `ratings` (
+  `rating_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `rater_user_id` INT(11) NOT NULL,
+  `rated_user_id` INT(11) NOT NULL,
+  `rating_value` DECIMAL(2,1) NOT NULL CHECK (`rating_value` BETWEEN 0 AND 5),
+  `created_at` TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`rating_id`),
+  KEY `rater_user_id` (`rater_user_id`),
+  KEY `rated_user_id` (`rated_user_id`),
+  CONSTRAINT `ratings_ibfk_1` FOREIGN KEY (`rater_user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `ratings_ibfk_2` FOREIGN KEY (`rated_user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
