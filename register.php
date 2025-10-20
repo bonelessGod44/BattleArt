@@ -114,10 +114,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check input errors before inserting in database
     if (empty($firstName_err) && empty($lastName_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($userName_err) && empty($dob_err)) {
         // Prepare an insert statement
-        $sql = "INSERT INTO users (user_firstName, user_middleName, user_lastName, user_email, user_password, user_userName, user_dob) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO users (user_firstName, user_middleName, user_lastName, user_email, user_password, user_userName, user_dob, user_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         if ($stmt = $mysqli->prepare($sql)) {
-            $stmt->bind_param("sssssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password, $param_username, $param_dob);
+            $user_type = 'user'; // Default type for regular registration
+            $stmt->bind_param("ssssssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password, $param_username, $param_dob, $user_type);
 
             $param_firstname = $firstName;
             $param_middlename = $middleName;

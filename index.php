@@ -2,6 +2,12 @@
 session_start();
 require_once "config.php"; // Connect to the database
 
+// Check if user is logged in and is an admin
+if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'admin') {
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
 //FETCH TOP 4 TRENDING CHALLENGES
 $trending_challenges = [];
 

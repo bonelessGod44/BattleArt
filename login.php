@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // If no validation errors, proceed to check credentials
     if (empty($error_message)) {
         // Prepare a select statement using your correct column names
-        $sql = "SELECT user_id, user_email, user_password FROM users WHERE user_email = ?";
+        $sql = "SELECT user_id, user_email, user_password, user_type, user_userName FROM users WHERE user_email = ?";
 
         if ($stmt = $mysqli->prepare($sql)) {
             // Bind variables to the prepared statement as parameters
@@ -45,23 +45,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 // Check if email exists, if yes then verify password
                 if ($stmt->num_rows == 1) {
-                    $stmt->bind_result($id, $email_from_db, $hashed_password);
+                    $stmt->bind_result($id, $email_from_db, $hashed_password, $user_type, $username);
                     if ($stmt->fetch()) {
                         if (password_verify($password, $hashed_password)) {
+                            // Store data in session variables
+                            $_SESSION["loggedin"] = true;
+                            $_SESSION["user_id"] = $id;
+                            $_SESSION["user_email"] = $email_from_db;
+                            $_SESSION["user_type"] = $user_type;
+                            $_SESSION["username"] = $username;
+                            
+                            // Get user's profile picture
+                            $profile_sql = "SELECT user_profile_pic FROM users WHERE user_id = ?";
+                            if ($profile_stmt = $mysqli->prepare($profile_sql)) {
+                                $profile_stmt->bind_param("i", $id);
+                                $profile_stmt->execute();
+                                $profile_result = $profile_stmt->get_result();
+                                if ($profile_row = $profile_result->fetch_assoc()) {
+                                    $_SESSION["profile_pic"] = $profile_row['user_profile_pic'];
+                                }
+                                $profile_stmt->close();
+                            }
                             // Password is correct, so start a new session
                             if (session_status() == PHP_SESSION_NONE) {
                                 session_start();
                             }
 
-                            // Store data in session variables as required by auth_check.php
+                            // Store data in session variables
                             $_SESSION["user_logged_in"] = true;
                             $_SESSION["user_email"] = $email_from_db;
                             $_SESSION["user_id"] = $id;
+                            $_SESSION["user_type"] = $user_type;
+                            $_SESSION["user_userName"] = $username;
                             $_SESSION["login_time"] = time();
                             $_SESSION["last_activity"] = time();
 
-                            // Redirect to profile page
-                            header("location: profile.php");
+                            // Log the login activity
+                            $sql_activity = "INSERT INTO user_activity (user_id, login_time, ip_address, user_agent) VALUES (?, NOW(), ?, ?)";
+                            if ($stmt_activity = $mysqli->prepare($sql_activity)) {
+                                $ip = $_SERVER['REMOTE_ADDR'];
+                                $user_agent = $_SERVER['HTTP_USER_AGENT'];
+                                $stmt_activity->bind_param("iss", $id, $ip, $user_agent);
+                                $stmt_activity->execute();
+                                $stmt_activity->close();
+                            }
+
+                            // Redirect based on user type
+                            if ($user_type === 'admin') {
+                                header("location: admin_dashboard.php");
+                            } else {
+                                header("location: profile.php");
+                            }
                             exit();
                         } else {
                             // Password is not valid
@@ -226,4 +260,3 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
     </script>
 </body>
 </html>
-

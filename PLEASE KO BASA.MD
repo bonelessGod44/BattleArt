@@ -4,6 +4,9 @@ PHP
 COMPOSER
 PHPMAILER
 
+COPY admin_tables.sql to your database to create necessary tables for admin functionalities.
+THEN RUN create_admin.php to create first admin account then login with that account
+
 Tables
 CREATE TABLE `challenges` (
  `challenge_id` int(11) NOT NULL AUTO_INCREMENT,

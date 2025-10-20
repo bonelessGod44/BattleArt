@@ -39,6 +39,17 @@ function isLoggedIn() {
     return isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true;
 }
 
+function isAdmin() {
+    return isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'admin';
+}
+
+function requireAdmin($redirect_url = 'login.php') {
+    if (!isLoggedIn() || !isAdmin()) {
+        header('Location: ' . $redirect_url);
+        exit();
+    }
+}
+
 function getSessionInfo() {
     if (!isLoggedIn()) {
         return null;
