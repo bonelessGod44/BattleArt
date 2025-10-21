@@ -3,49 +3,68 @@ require_once "admin_auth_check.php";
 requireAdmin();
 
 // Get user ID from URL
-$user_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$user_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if (!$user_id) {
     header("Location: admin_dashboard.php");
     exit;
 }
 
+require_once "config.php";
+
+// ✅ Get admin profile picture from session or DB
+if (isset($_SESSION['user_id'])) {
+    $admin_id = $_SESSION['user_id'];
+    $result = $mysqli->query("SELECT user_profile_pic FROM users WHERE user_id = $admin_id");
+
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $_SESSION['user_profile_pic'] = $row['user_profile_pic'];
+    }
+
+    if (!empty($_SESSION['user_profile_pic'])) {
+        $navbarProfilePic = 'http://localhost/BattleArt/uploads/' . htmlspecialchars($_SESSION['user_profile_pic']);
+    } else {
+        $navbarProfilePic = 'http://localhost/BattleArt/assets/images/golem.png';
+    }
+} else {
+    $navbarProfilePic = 'http://localhost/BattleArt/assets/images/golem.png';
+}
+
 // Handle user status updates if submitted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'ban':
-                $sql = "UPDATE users SET account_status = 'banned' WHERE user_id = ?";
-                break;
-            case 'unban':
-                $sql = "UPDATE users SET account_status = 'active' WHERE user_id = ?";
-                break;
-            case 'delete':
-                // Delete user's content first (you might want to keep some records)
-                $sqls = [
-                    "DELETE FROM comments WHERE user_id = ?",
-                    "DELETE FROM likes WHERE user_id = ?",
-                    "DELETE FROM interpretations WHERE user_id = ?",
-                    "DELETE FROM challenges WHERE user_id = ?",
-                    "DELETE FROM users WHERE user_id = ?"
-                ];
-                foreach ($sqls as $sql) {
-                    if ($stmt = $mysqli->prepare($sql)) {
-                        $stmt->bind_param("i", $user_id);
-                        $stmt->execute();
-                        $stmt->close();
-                    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    switch ($_POST['action']) {
+        case 'ban':
+            $sql = "UPDATE users SET account_status = 'banned' WHERE user_id = ?";
+            break;
+        case 'unban':
+            $sql = "UPDATE users SET account_status = 'active' WHERE user_id = ?";
+            break;
+        case 'delete':
+            // Delete user's content first (cascade manually)
+            $sqls = [
+                "DELETE FROM comments WHERE user_id = ?",
+                "DELETE FROM likes WHERE user_id = ?",
+                "DELETE FROM interpretations WHERE user_id = ?",
+                "DELETE FROM challenges WHERE user_id = ?",
+                "DELETE FROM users WHERE user_id = ?"
+            ];
+            foreach ($sqls as $sql) {
+                if ($stmt = $mysqli->prepare($sql)) {
+                    $stmt->bind_param("i", $user_id);
+                    $stmt->execute();
+                    $stmt->close();
                 }
-                header("Location: admin_dashboard.php");
-                exit;
-        }
-        
-        if (isset($sql)) {
-            if ($stmt = $mysqli->prepare($sql)) {
-                $stmt->bind_param("i", $user_id);
-                $stmt->execute();
-                $stmt->close();
             }
+            header("Location: admin_dashboard.php");
+            exit;
+    }
+
+    if (isset($sql)) {
+        if ($stmt = $mysqli->prepare($sql)) {
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $stmt->close();
         }
     }
 }
@@ -53,11 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch user details
 $user = null;
 $sql = "SELECT u.*, 
-        (SELECT COUNT(*) FROM challenges WHERE user_id = u.user_id) as artwork_count,
-        (SELECT COUNT(*) FROM interpretations WHERE user_id = u.user_id) as interpretation_count,
-        (SELECT COUNT(*) FROM comments WHERE user_id = u.user_id) as comment_count,
-        (SELECT COUNT(*) FROM likes WHERE user_id = u.user_id) as like_count,
-        (SELECT MAX(login_time) FROM user_activity WHERE user_id = u.user_id) as last_seen
+        (SELECT COUNT(*) FROM challenges WHERE user_id = u.user_id) AS artwork_count,
+        (SELECT COUNT(*) FROM interpretations WHERE user_id = u.user_id) AS interpretation_count,
+        (SELECT COUNT(*) FROM comments WHERE user_id = u.user_id) AS comment_count,
+        (SELECT COUNT(*) FROM likes WHERE user_id = u.user_id) AS like_count,
+        (SELECT MAX(login_time) FROM user_activity WHERE user_id = u.user_id) AS last_seen
         FROM users u 
         WHERE u.user_id = ?";
 
@@ -75,28 +94,28 @@ if (!$user) {
 }
 
 // Fetch recent activity
-$activities = array();
+$activities = [];
 $sql = "SELECT 
-            'artwork' as type,
-            challenge_name as title,
-            created_at as date,
-            challenge_id as id
+            'artwork' AS type,
+            challenge_name AS title,
+            created_at AS date,
+            challenge_id AS id
         FROM challenges 
         WHERE user_id = ?
         UNION ALL
         SELECT 
-            'interpretation' as type,
-            'Interpretation of artwork' as title,
-            created_at as date,
-            interpretation_id as id
+            'interpretation' AS type,
+            'Interpretation of artwork' AS title,
+            created_at AS date,
+            interpretation_id AS id
         FROM interpretations 
         WHERE user_id = ?
         UNION ALL
         SELECT 
-            'comment' as type,
-            comment_text as title,
-            created_at as date,
-            comment_id as id
+            'comment' AS type,
+            comment_text AS title,
+            created_at AS date,
+            comment_id AS id
         FROM comments 
         WHERE user_id = ?
         ORDER BY date DESC 
@@ -112,22 +131,19 @@ if ($stmt = $mysqli->prepare($sql)) {
     $stmt->close();
 }
 
-// Helper function from admin_dashboard.php
-function timeAgo($time) {
+// Helper function for "time ago"
+function timeAgo($time)
+{
     $diff = time() - strtotime($time);
-    if ($diff < 60) {
-        return "Just now";
-    } elseif ($diff < 3600) {
-        return floor($diff/60) . " mins ago";
-    } elseif ($diff < 86400) {
-        return floor($diff/3600) . " hours ago";
-    } else {
-        return floor($diff/86400) . " days ago";
-    }
+    if ($diff < 60) return "Just now";
+    elseif ($diff < 3600) return floor($diff / 60) . " mins ago";
+    elseif ($diff < 86400) return floor($diff / 3600) . " hours ago";
+    else return floor($diff / 86400) . " days ago";
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,33 +158,47 @@ function timeAgo($time) {
             gap: 1rem;
             margin-bottom: 2rem;
         }
+
         .stat-card {
             background: var(--light-purple);
             padding: 1.5rem;
             border-radius: 10px;
             text-align: center;
         }
+
         .stat-card h3 {
             font-size: 2rem;
             color: var(--primary-bg);
             margin-bottom: 0.5rem;
         }
+
         .activity-item {
             padding: 1rem;
             border-bottom: 1px solid #eee;
         }
+
         .activity-item:last-child {
             border-bottom: none;
         }
+
         .status-badge {
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-weight: 600;
         }
-        .status-active { background-color: #28a745; color: white; }
-        .status-banned { background-color: #dc3545; color: white; }
+
+        .status-active {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-banned {
+            background-color: #dc3545;
+            color: white;
+        }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
@@ -176,6 +206,16 @@ function timeAgo($time) {
                 <i class="bi bi-arrow-left me-2"></i>
                 <span class="navbar-brand-text">Back to Dashboard</span>
             </a>
+
+            <div class="d-flex align-items-center">
+                <img src="<?php echo $navbarProfilePic; ?>" 
+                     alt="Admin Avatar" 
+                     class="rounded-circle me-2"
+                     style="width: 32px; height: 32px; object-fit: cover;">
+                <span class="text-white fw-semibold">
+                    <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
+                </span>
+            </div>
         </div>
     </nav>
 
@@ -183,10 +223,12 @@ function timeAgo($time) {
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-4">
-                    <img src="<?php echo htmlspecialchars($user['user_profile_pic'] ?? 'assets/images/default_avatar.png'); ?>" 
-                         alt="User Avatar" 
-                         class="rounded-circle me-3"
-                         style="width: 100px; height: 100px; object-fit: cover;">
+                    <img src="<?php echo !empty($user['user_profile_pic'])
+                        ? 'http://localhost/BattleArt/uploads/' . htmlspecialchars($user['user_profile_pic'])
+                        : 'http://localhost/BattleArt/assets/images/golem.png'; ?>" 
+                        alt="User Avatar" 
+                        class="rounded-circle me-3"
+                        style="width: 100px; height: 100px; object-fit: cover;">
                     <div>
                         <h2 class="mb-1"><?php echo htmlspecialchars($user['user_userName']); ?></h2>
                         <p class="text-muted mb-2">
@@ -249,12 +291,12 @@ function timeAgo($time) {
                             <?php foreach ($activities as $activity): ?>
                                 <div class="activity-item">
                                     <div class="d-flex align-items-center">
-                                        <i class="bi bi-<?php 
-                                            echo $activity['type'] === 'artwork' ? 'palette' : 
-                                                ($activity['type'] === 'interpretation' ? 'brush' : 'chat-dots'); 
+                                        <i class="bi bi-<?php
+                                            echo $activity['type'] === 'artwork' ? 'palette' :
+                                                ($activity['type'] === 'interpretation' ? 'brush' : 'chat-dots');
                                         ?> me-2"></i>
                                         <div>
-                                            <strong><?php echo ucfirst($activity['type']); ?></strong>: 
+                                            <strong><?php echo ucfirst($activity['type']); ?></strong>:
                                             <?php echo htmlspecialchars(mb_strimwidth($activity['title'], 0, 100, "...")); ?>
                                             <br>
                                             <small class="text-muted">

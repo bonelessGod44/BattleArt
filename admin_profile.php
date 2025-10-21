@@ -37,8 +37,10 @@ if ($result = $mysqli->query($sql)) {
 }
 
 // Placeholder paths
-$bannerPicPath = 'assets/images/golem.png';
-$profilePicPath = 'assets/images/golem.png';
+$profilePicPath = (!empty($admin_data['user_profile_pic']) && file_exists('uploads/' . $admin_data['user_profile_pic']))
+    ? 'uploads/' . $admin_data['user_profile_pic']
+    : 'assets/images/golem.png';
+$bannerPicPath = !empty($admin_data['user_banner_pic']) ? 'uploads/' . $admin_data['user_banner_pic'] : 'assets/images/banner_default.png';
 $user_badge = 'Admin';
 ?>
 <!DOCTYPE html>
@@ -135,7 +137,7 @@ body {
             <a href="admin_manage_comments.php" class="nav-link nav-link-custom me-3"><i class="fas fa-comments me-1"></i> Comments</a>
             <div class="dropdown">
                 <button class="btn btn-link nav-link-custom dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown">
-                    <img src="<?php echo $profilePicPath; ?>" class="navbar-avatar">
+                    <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Admin Avatar" class="navbar-avatar">
                     <span class="d-none d-md-inline"><?php echo htmlspecialchars($admin_data['user_userName']); ?></span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
@@ -155,7 +157,11 @@ body {
     </div>
 
     <img src="<?php echo $bannerPicPath; ?>" alt="Admin Banner" class="profile-banner">
-
+    <div class="d-flex justify-content-end mb-2">
+    <a href="edit_admin.php" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-edit me-1"></i> Edit Profile
+    </a>
+    </div>
     <!-- Tabs -->
     <ul class="nav nav-pills profile-tabs mb-3">
         <li class="nav-item"><a class="nav-link active" id="profile-tab" href="#">Profile</a></li>
@@ -173,9 +179,6 @@ body {
                     Email: <?php echo htmlspecialchars($admin_data['user_email']); ?><br>
                     Last Login: <?php echo $admin_data['last_login'] ?? 'N/A'; ?>
                 </div>
-            </div>
-            <div class="profile-actions">
-                <a href="edit-profile.php" class="btn btn-primary">Edit</a>
             </div>
         </div>
     </div>
