@@ -29,6 +29,6 @@ if (isset($_GET['notification_id']) && !empty($_GET['notification_id'])) {
         $stmt->close();
     }
     
-    header("Location: notifications.php");
+    header("Location: notification.php");
     exit;
 }

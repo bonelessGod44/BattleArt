@@ -49,7 +49,7 @@ if (isset($_SESSION['user_id']) && isset($mysqli) && $mysqli->ping()) {
                     <!--LOGGED-IN USER LINKS-->
                     <li class="nav-item position-relative">
                         <a class="nav-link" href="notification.php">
-                            <i class="fas fa-inbox me-1"></i>
+                            <i class="fa fa-bell me-1"></i>
                             Inbox
                             <?php if ($unread_count > 0): ?>
                                 <span class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">

@@ -661,7 +661,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
 
             <div class="welcome-section">
                 <h4>Welcome to <?php echo htmlspecialchars($user['user_userName']); ?>'s art battle profile!</h4>
-                <p><?php echo nl2br(htmlspecialchars($user['user_bio'])); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($user['user_bio'] ?? '')); ?></p>
 
                 <!-- THIS IS THE DYNAMIC STAR RATING SECTION -->
                 <div class="star-rating">
