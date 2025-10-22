@@ -121,7 +121,7 @@ if (!empty($search_query)) {
                         <?php
                             $avatar = !empty($found_user['user_profile_pic']) 
                                 ? 'assets/uploads/' . htmlspecialchars($found_user['user_profile_pic']) 
-                                : 'assets/images/default-avatar.png';
+                                : 'assets/images/blank-profile-picture.png';
                         ?>
                         <div class="col">
                             <a href="public_profile.php?user_id=<?php echo $found_user['user_id']; ?>" class="card h-100 text-decoration-none text-center p-3">

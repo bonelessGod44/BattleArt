@@ -14,7 +14,7 @@ $viewer_user_id = $_SESSION['user_id'] ?? null;
 $user = []; // This will hold all the user's data
 
 //Fetch main user info
-$sql_user = "SELECT user_userName, user_email, user_profile_pic, user_bio, user_banner_pic, show_art, show_history, show_comments FROM users WHERE user_id = ?";
+$sql_user = "SELECT user_userName, user_email, user_profile_pic, user_bio, user_banner_pic, show_art, show_history, show_comments, user_type, account_status FROM users WHERE user_id = ?";
 if ($stmt_user = $mysqli->prepare($sql_user)) {
     $stmt_user->bind_param("i", $profile_user_id);
     if ($stmt_user->execute()) {
@@ -81,12 +81,44 @@ $sql_history = "(SELECT
                 FROM comments co
                 JOIN challenges ch ON co.challenge_id = ch.challenge_id
                 WHERE co.user_id = ?)
+                UNION
+                (SELECT
+                    'created_interpretation' as event_type,
+                    ch.challenge_name as event_title,
+                    i.description as event_content,
+                    i.challenge_id,
+                    i.created_at as event_date
+                FROM interpretations i
+                JOIN challenges ch ON i.challenge_id = ch.challenge_id
+                WHERE i.user_id = ?)
+                UNION
+                (SELECT
+                    'liked_challenge' as event_type,
+                    ch.challenge_name as event_title,
+                    NULL as event_content,
+                    l.challenge_id,
+                    l.created_at as event_date
+                FROM likes l
+                JOIN challenges ch ON l.challenge_id = ch.challenge_id
+                WHERE l.user_id = ?)
+                UNION
+                (SELECT
+                    'liked_interpretation' as event_type,
+                    u.user_userName as event_title,
+                    ch.challenge_name as event_content,
+                    ch.challenge_id,
+                    il.created_at as event_date
+                FROM interpretation_likes il
+                JOIN interpretations i ON il.interpretation_id = i.interpretation_id
+                JOIN users u ON i.user_id = u.user_id
+                JOIN challenges ch ON i.challenge_id = ch.challenge_id
+                WHERE il.user_id = ?)
                 ORDER BY event_date DESC
                 LIMIT 10";
 
 if ($stmt_history = $mysqli->prepare($sql_history)) {
-    //We need to bind the user_id twice
-    $stmt_history->bind_param("ii", $profile_user_id, $profile_user_id);
+    // We now need to bind the user_id five times
+    $stmt_history->bind_param("iiiii", $profile_user_id, $profile_user_id, $profile_user_id, $profile_user_id, $profile_user_id);
     $stmt_history->execute();
     $result = $stmt_history->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -159,8 +191,7 @@ $user_types = [
     'artist@battleart.com' => 'Artist'
 ];
 
-$user_badge = $user_types[$user['user_email']] ?? 'User';
-?>
+$user_badge = ucfirst(htmlspecialchars($user['user_type'] ?? 'User')); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -596,7 +627,7 @@ $user_badge = $user_types[$user['user_email']] ?? 'User';
             </li>
             <?php if ($user['show_art'] == 1): ?>
                 <li class="nav-item">
-                    <a class="nav-link" id="your-art-tab" href="#">Your art</a>
+                    <a class="nav-link" id="your-art-tab" href="#">Their Art</a>
                 </li>
             <?php endif; ?>
             <?php if ($user['show_history'] == 1): ?>
@@ -618,6 +649,9 @@ $user_badge = $user_types[$user['user_email']] ?? 'User';
                 </div>
                 <div class="profile-info">
                     <h3><?php echo htmlspecialchars($user['user_userName']); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
+                    <?php if (($user['account_status'] ?? 'active') === 'banned'): ?>
+                        <span class="badge bg-danger ms-2">Banned</span>
+                        <?php endif; ?>
                 </div>
             </div>
 
@@ -695,6 +729,26 @@ $user_badge = $user_types[$user['user_email']] ?? 'User';
                             <div class="log-icon"><i class="fas fa-comment"></i></div>
                             <div class="log-content">
                                 <p><?php echo htmlspecialchars($user['user_userName']); ?> commented on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>: "<?php echo htmlspecialchars($event['event_content']); ?>"</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
+                            </div>
+                        <?php elseif ($event['event_type'] === 'created_interpretation'):
+                            $interp_desc = !empty($event['event_content']) ? ': "' . htmlspecialchars(substr($event['event_content'], 0, 50)) . '..."' : '.';
+                        ?>
+                            <div class="log-icon"><i class="fas fa-paint-brush"></i></div>
+                            <div class="log-content">
+                                <p><?php echo htmlspecialchars($user['user_userName']); ?> submitted an interpretation on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a><?php echo $interp_desc; ?></p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
+                            </div>
+                        <?php elseif ($event['event_type'] === 'liked_challenge'): ?>
+                            <div class="log-icon text-danger"><i class="fas fa-heart"></i></div>
+                            <div class="log-content">
+                                <p><?php echo htmlspecialchars($user['user_userName']); ?> liked the challenge <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>.</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
+                            </div>
+                        <?php elseif ($event['event_type'] === 'liked_interpretation'): ?>
+                            <div class="log-icon text-danger"><i class="fas fa-heart"></i></div>
+                            <div class="log-content">
+                                <p><?php echo htmlspecialchars($user['user_userName']); ?> liked <strong><?php echo htmlspecialchars($event['event_title']); ?>'s</strong> interpretation on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_content']); ?></strong></a>.</p>
                                 <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
                         <?php endif; ?>

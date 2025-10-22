@@ -1,13 +1,18 @@
 <?php
-// Include config file
+session_start();
 require_once "config.php";
+define('ADMIN_SECRET_CODE', 'BATTLEARTSECRETADMINCODE!');
 
-// Define variables and initialize with empty values
-$firstName = $middleName = $lastName = $email = $password = $confirm_password = $userName = $dob = "";
-$firstName_err = $middleName_err = $lastName_err = $email_err = $password_err = $confirm_password_err = $userName_err = $dob_err = "";
+$firstName = $middleName = $lastName = $email = $password = $confirm_password = $userName = $dob = $admin_code = "";
+$firstName_err = $middleName_err = $lastName_err = $email_err = $password_err = $confirm_password_err = $userName_err = $dob_err = $admin_code_err = "";
+
+$user_type = "user";
 
 // Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+    $user_type = $_POST['user_type'] ?? 'user';
+    $admin_code = trim($_POST['admin_code']);
 
     // Validate first name
     if (empty(trim($_POST["firstName"]))) {
@@ -111,15 +116,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    // --- NEW ---
+    // Validate Admin Code if admin registration is selected
+    if ($user_type == 'admin') {
+        if (empty($admin_code)) {
+            $admin_code_err = "Please enter the admin code.";
+        } elseif ($admin_code != ADMIN_SECRET_CODE) {
+            $admin_code_err = "Invalid admin code.";
+        }
+    }
+    // -----------
+
+
+    // --- MODIFIED ---
     // Check input errors before inserting in database
-    if (empty($firstName_err) && empty($lastName_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($userName_err) && empty($dob_err)) {
-        // Prepare an insert statement
+    // Added $admin_code_err check
+    if (empty($firstName_err) && empty($lastName_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($userName_err) && empty($dob_err) && empty($admin_code_err)) {
+
+        // --- MODIFIED ---
+        // Prepare an insert statement - Added user_type
         $sql = "INSERT INTO users (user_firstName, user_middleName, user_lastName, user_email, user_password, user_userName, user_dob, user_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         if ($stmt = $mysqli->prepare($sql)) {
-            $user_type = 'user'; // Default type for regular registration
-            $stmt->bind_param("ssssssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password, $param_username, $param_dob, $user_type);
+            // --- MODIFIED ---
+            // Bind variables to the prepared statement as parameters
+            // Changed "sssssss" to "ssssssss" and added $param_usertype
+            $stmt->bind_param("ssssssss", $param_firstname, $param_middlename, $param_lastname, $param_email, $param_password, $param_username, $param_dob, $param_usertype);
 
+            // Set parameters
             $param_firstname = $firstName;
             $param_middlename = $middleName;
             $param_lastname = $lastName;
@@ -127,6 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
             $param_username = $userName;
             $param_dob = $dob;
+            $param_usertype = $user_type; // --- NEW ---
 
             if ($stmt->execute()) {
                 // Redirect to login page
@@ -150,11 +175,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BattleArt - Register</title>
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Custom CSS -->
     <link href="assets/css/custom.css" rel="stylesheet">
 </head>
 
@@ -165,14 +187,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="card shadow-lg border-0">
                     <div class="card-body p-5">
 
-                        <!-- Logo/Brand -->
                         <div class="text-center mb-4">
                             <h1 class="brand-title fw-bold text-primary mb-2">BattleArt</h1>
                             <p class="subtitle text-muted">Join the community and start your art battle journey</p>
                         </div>
 
-                        <!-- Registration Form -->
                         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+
+                            <ul class="nav nav-tabs nav-fill mb-3" id="registerTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link <?php echo ($user_type == 'user') ? 'active' : ''; ?>" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-pane" type="button" role="tab" aria-controls="user-pane" aria-selected="<?php echo ($user_type == 'user') ? 'true' : 'false'; ?>">
+                                        <i class="bi bi-person me-2"></i>Register as User
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link <?php echo ($user_type == 'admin') ? 'active' : ''; ?>" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-pane" type="button" role="tab" aria-controls="admin-pane" aria-selected="<?php echo ($user_type == 'admin') ? 'true' : 'false'; ?>">
+                                        <i class="bi bi-person-badge me-2"></i>Register as Admin
+                                    </button>
+                                </li>
+                            </ul>
+                            <input type="hidden" name="user_type" id="userTypeInput" value="<?php echo $user_type; ?>">
 
                             <div class="mb-3">
                                 <label for="userName" class="form-label">Username</label>
@@ -182,7 +216,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </div>
                                 <span class="text-danger"><?php echo $userName_err; ?></span>
                             </div>
-                            <!-- First Name -->
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label for="firstName" class="form-label">First Name</label>
@@ -192,7 +225,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     </div>
                                     <span class="text-danger"><?php echo $firstName_err; ?></span>
                                 </div>
-                                <!-- Middle Name -->
                                 <div class="col-md-6">
                                     <label for="middleName" class="form-label">Middle Name</label>
                                     <div class="input-group">
@@ -201,7 +233,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     </div>
                                 </div>
                             </div>
-                            <!-- Last Name -->
                             <div class="mb-3">
                                 <label for="lastName" class="form-label">Last Name</label>
                                 <div class="input-group">
@@ -210,7 +241,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </div>
                                 <span class="text-danger"><?php echo $lastName_err; ?></span>
                             </div>
-                            <!-- Date of Birth -->
                             <div class="mb-3">
                                 <label for="dob" class="form-label">Date of Birth</label>
                                 <div class="input-group">
@@ -219,7 +249,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </div>
                                 <span class="text-danger"><?php echo $dob_err; ?></span>
                             </div>
-                            <!-- Email -->
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
                                 <div class="input-group">
@@ -228,7 +257,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </div>
                                 <span class="text-danger"><?php echo $email_err; ?></span>
                             </div>
-                            <!-- Password and Confirm Password -->
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="password" class="form-label">Password</label>
@@ -253,7 +281,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <span class="text-danger"><?php echo $confirm_password_err; ?></span>
                                 </div>
                             </div>
-            
+
+                            <div class="tab-content pt-2" id="registerTabsContent">
+                                <div class="tab-pane fade <?php echo ($user_type == 'user') ? 'show active' : ''; ?>" id="user-pane" role="tabpanel" aria-labelledby="user-tab">
+                                </div>
+                                
+                                <div class="tab-pane fade <?php echo ($user_type == 'admin') ? 'show active' : ''; ?>" id="admin-pane" role="tabpanel" aria-labelledby="admin-tab">
+                                    <div class="mb-3">
+                                        <label for="admin_code" class="form-label">Admin Code</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                                            <input type="password" name="admin_code" class="form-control <?php echo (!empty($admin_code_err)) ? 'is-invalid' : ''; ?>" id="admin_code" value="<?php echo $admin_code; ?>" placeholder="Enter secret admin code">
+                                        </div>
+                                        <span class="text-danger"><?php echo $admin_code_err; ?></span>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="d-grid mt-4 mb-3">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="bi bi-person-plus-fill me-2" aria-hidden="true"></i>
@@ -272,7 +315,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                 </div>
 
-                <!-- Additional Links -->
                 <div class="text-center mt-3">
                     <a href="./index.php" class="back-home-link">
                         <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
@@ -283,15 +325,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Password Toggle Script -->
+
     <script>
         document.getElementById('togglePassword').addEventListener('click', function() {
             const password = document.getElementById('password');
             const icon = this.querySelector('i');
-            
+
             if (password.type === 'password') {
                 password.type = 'text';
                 icon.classList.remove('bi-eye');
@@ -306,7 +346,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
             const confirmPassword = document.getElementById('confirmPassword');
             const icon = this.querySelector('i');
-            
+
             if (confirmPassword.type === 'password') {
                 confirmPassword.type = 'text';
                 icon.classList.remove('bi-eye');
@@ -317,6 +357,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 icon.classList.add('bi-eye');
             }
         });
+
+        const userTab = document.getElementById('user-tab');
+        const adminTab = document.getElementById('admin-tab');
+        const userTypeInput = document.getElementById('userTypeInput');
+
+        if(userTab) {
+            userTab.addEventListener('click', function() {
+                userTypeInput.value = 'user';
+            });
+        }
+        
+        if(adminTab) {
+            adminTab.addEventListener('click', function() {
+                userTypeInput.value = 'admin';
+            });
+        }
     </script>
 </body>
 

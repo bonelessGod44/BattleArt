@@ -1,6 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 require_once "config.php";
-date_default_timezone_set('Asia/Manila');
 
 // This block of code runs first to validate the token from the URL
 $token = $_GET["token"] ?? null;
@@ -12,7 +14,7 @@ if ($token === null) {
 $token_hash = hash("sha256", $token);
 
 // Find the user by the token hash and check if it has not expired
-$sql = "SELECT * FROM users WHERE reset_token_hash = ? AND reset_token_expires_at > NOW()";
+$sql = "SELECT * FROM users WHERE reset_token_hash = ? AND reset_token_expires_at > UTC_TIMESTAMP()";
 if ($stmt = $mysqli->prepare($sql)) {
     $stmt->bind_param("s", $token_hash);
     $stmt->execute();

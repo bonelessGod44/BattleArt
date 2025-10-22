@@ -60,7 +60,7 @@ $like_stmt->execute();
 $like_count = $like_stmt->get_result()->fetch_assoc()['like_count'];
 $like_stmt->close();
 
-$comments_sql = "SELECT c.*, u.user_userName, u.user_profile_pic FROM comments c JOIN users u ON c.user_id = u.user_id WHERE c.challenge_id = ? ORDER BY c.created_at DESC";
+$comments_sql = "SELECT c.*, u.user_userName, u.user_profile_pic, u.user_type FROM comments c JOIN users u ON c.user_id = u.user_id WHERE c.challenge_id = ? ORDER BY c.created_at DESC";
 $comments_stmt = $mysqli->prepare($comments_sql);
 $comments_stmt->bind_param("i", $challenge_id);
 $comments_stmt->execute();
@@ -107,7 +107,7 @@ if ($total_interpretations > 0) {
 
 $authorAvatarPath = !empty($challenge['user_profile_pic'])
     ? 'assets/uploads/' . htmlspecialchars($challenge['user_profile_pic'])
-    : 'assets/images/default-avatar.png';
+    : 'assets/images/blank-profile-picture.png';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -198,6 +198,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                     <p class="text-muted fs-5 mb-0">by <?php echo htmlspecialchars($challenge['user_userName']); ?></p>
                 </a>
             </div>
+            <?php if ($viewer_user_id != $author_id): // Only show rating block if viewer is NOT the author ?>
             <div class="mt-3">
                 <small class="text-muted d-block text-center">Rate the author!</small>
                 <div class="star-rating-input" data-rated-user-id="<?php echo $author_id; ?>">
@@ -208,6 +209,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                     <input type="radio" id="star1" name="rating" value="1" <?php if ($current_user_rating == 1) echo 'checked'; ?>><label for="star1" title="1 star"><i class="fas fa-star"></i></label>
                 </div>
             </div>
+            <?php endif; ?>
             <div class="text-center mb-4">
                 <img class="img-fluid rounded shadow-sm" style="max-height: 500px;" src="assets/uploads/<?php echo htmlspecialchars($challenge['original_art_filename']); ?>" alt="<?php echo htmlspecialchars($challenge['challenge_name']); ?>">
             </div>
@@ -243,7 +245,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                     </div>
                 <?php else: ?>
                     <?php foreach ($interpretations as $interp): ?>
-                        <?php $interpAvatarPath = !empty($interp['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars($interp['user_profile_pic']) : 'assets/images/default-avatar.png'; ?>
+                        <?php $interpAvatarPath = !empty($interp['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars($interp['user_profile_pic']) : 'assets/images/blank-profile-picture.png'; ?>
                         <div class="col">
                             <div class="card h-100 interpretation-card" data-interpretation-id="<?php echo $interp['interpretation_id']; ?>">
                                 <div class="card-body">
@@ -295,11 +297,18 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                     <p class="text-muted">No comments yet.</p>
                 <?php else: ?>
                     <?php foreach ($comments as $comment): ?>
-                        <?php $commenterAvatar = !empty($comment['user_profile_pic']) ? 'assets/uploads/' . $comment['user_profile_pic'] : 'assets/images/default-avatar.png'; ?>
+                        <?php $commenterAvatar = !empty($comment['user_profile_pic']) ? 'assets/uploads/' . $comment['user_profile_pic'] : 'assets/images/blank-profile-picture.png'; ?>
                         <div class="comment-card p-3 rounded-3">
                             <div class="d-flex align-items-center mb-2">
                                 <img src="<?php echo $commenterAvatar; ?>" alt="<?php echo htmlspecialchars($comment['user_userName']); ?>" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
                                 <span class="fw-bold"><?php echo htmlspecialchars($comment['user_userName']); ?></span>
+                                <?php
+                                $user_type = $comment['user_type'] ?? 'user';
+                                $badge_class = ($user_type === 'admin') ? 'bg-primary' : 'bg-secondary';
+                                ?>
+                                <span class="badge <?php echo $badge_class; ?> ms-1" style="font-size: 0.65rem; vertical-align: middle;">
+                                    <?php echo ucfirst(htmlspecialchars($user_type)); ?>
+                                </span>
                             </div>
                             <p class="mb-0 small"><?php echo htmlspecialchars($comment['comment_text']); ?></p>
                         </div>
@@ -329,28 +338,30 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
 
     <div id="message-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdeli.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         /**
          * Displays a simple "Login Required" pop-up with a link to the login page.
          */
         function showLoginPromptModal(title, message) {
+            // ... (function code is correct, no changes) ...
             const container = document.getElementById('message-container');
             const modalId = 'loginPromptModal';
             if (document.getElementById(modalId)) document.getElementById(modalId).remove();
 
             const modalHTML = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-sm modal-dialog-centered">
-                        <div class="modal-content rounded-4 shadow-lg border-0">
-                            <div class="modal-header border-0 pb-0"><h5 class="modal-title text-primary fw-bold">${title}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                            <div class="modal-body pt-2 pb-4"><p class="text-muted">${message}</p></div>
-                            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-                                <button type="button" class="btn btn-outline-secondary rounded-pill flex-grow-1 me-2" data-bs-dismiss="modal">Cancel</button>
-                                <a href="login.php" class="btn btn-primary rounded-pill flex-grow-1">Login</a>
-                            </div>
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content rounded-4 shadow-lg border-0">
+                        <div class="modal-header border-0 pb-0"><h5 class="modal-title text-primary fw-bold">${title}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                        <div class="modal-body pt-2 pb-4"><p class="text-muted">${message}</p></div>
+                        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary rounded-pill flex-grow-1 me-2" data-bs-dismiss="modal">Cancel</button>
+                            <a href="login.php" class="btn btn-primary rounded-pill flex-grow-1">Login</a>
                         </div>
                     </div>
-                </div>`;
+                </div>
+            </div>`;
             container.innerHTML = modalHTML;
             const modal = new bootstrap.Modal(document.getElementById(modalId));
             modal.show();
@@ -361,23 +372,24 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
          * Displays a confirmation pop-up for dangerous actions (e.g., Delete).
          */
         function showConfirmationModal(title, message, confirmText, confirmVariant, callback) {
+            // ... (function code is correct, no changes) ...
             const container = document.getElementById('message-container');
             const modalId = 'confirmActionModal';
             if (document.getElementById(modalId)) document.getElementById(modalId).remove();
 
             const modalHTML = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-sm modal-dialog-centered">
-                        <div class="modal-content rounded-4 shadow-lg border-0">
-                            <div class="modal-header border-0 pb-0"><h5 class="modal-title text-${confirmVariant} fw-bold">${title}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                            <div class="modal-body pt-2 pb-4"><p class="text-muted">${message}</p></div>
-                            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-                                <button type="button" class="btn btn-outline-secondary rounded-pill flex-grow-1 me-2" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" id="confirmActionBtn" class="btn btn-${confirmVariant} rounded-pill flex-grow-1">${confirmText}</button>
-                            </div>
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content rounded-4 shadow-lg border-0">
+                        <div class="modal-header border-0 pb-0"><h5 class="modal-title text-${confirmVariant} fw-bold">${title}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-body pt-2 pb-4"><p class="text-muted">${message}</p></div>
+                        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary rounded-pill flex-grow-1 me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" id="confirmActionBtn" class="btn btn-${confirmVariant} rounded-pill flex-grow-1">${confirmText}</button>
                         </div>
                     </div>
-                </div>`;
+                </div>
+            </div>`;
             container.innerHTML = modalHTML;
 
             const modalElement = document.getElementById(modalId);
@@ -393,7 +405,11 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
 
         // --- All event listeners are now inside this single block ---
         document.addEventListener('DOMContentLoaded', () => {
+
+            console.log('--- DEBUG --- DOMContentLoaded event fired. Script is running.'); // NEW
+
             const isUserLoggedIn = <?php echo json_encode(isset($viewer_user_id)); ?>;
+            console.log('--- DEBUG --- isUserLoggedIn:', isUserLoggedIn); // NEW
 
             // Handle Like Button
             const likeButton = document.getElementById('likeButton');
@@ -429,6 +445,8 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                             }
                         });
                 });
+            } else {
+                console.log('--- DEBUG --- Could not find #likeButton'); // NEW
             }
 
             // Handle "Delete Challenge" button for author
@@ -463,6 +481,164 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                     showLoginPromptModal('Login Required', 'You must be logged in to post a comment.');
                 });
             }
+
+            // Handle Interpretation Modal
+            console.log('--- DEBUG --- Setting up Interpretation Modal handler...'); // NEW
+            const interpretationModal = document.getElementById('interpretationModal');
+
+            console.log('--- DEBUG --- Found modal element:', interpretationModal); // NEW (This will say 'null' if it fails)
+
+            if (interpretationModal) {
+                console.log('--- DEBUG --- Attaching "show.bs.modal" event listener.'); // NEW
+
+                interpretationModal.addEventListener('show.bs.modal', function(event) {
+                    console.log('--- MODAL DEBUG ---'); // Kept from before
+                    console.log('Modal event "show.bs.modal" fired.'); // Kept from before
+
+                    const clickedElement = event.relatedTarget;
+                    console.log('Clicked Element (relatedTarget):', clickedElement); // Kept from before
+
+                    if (!clickedElement) {
+                        console.log('ERROR: No relatedTarget found. Exiting.'); // Kept from before
+                        return;
+                    }
+
+                    const button = clickedElement.closest('a[data-bs-target="#interpretationModal"]');
+                    console.log('Found <a> tag using selector:', button); // Kept from before
+
+                    if (!button) {
+                        console.log('ERROR: Could not find parent <a> tag. Exiting.'); // Kept from before
+                        return;
+                    }
+
+                    const imgSrc = button.dataset.imgSrc;
+                    const artistName = button.dataset.artistName;
+                    const artistAvatar = button.dataset.artistAvatar;
+                    const artistId = button.dataset.artistId;
+                    const description = button.dataset.description;
+                    const interpretationId = button.dataset.interpretationId;
+                    console.log('Extracted Data (imgSrc):', imgSrc); // Kept from before
+
+                    if (!imgSrc) {
+                        console.log('ERROR: Data attributes seem to be missing. Exiting.'); // Kept from before
+                        return;
+                    }
+
+                    let likeCount = parseInt(button.dataset.likeCount);
+                    let userHasLiked = parseInt(button.dataset.userHasLiked) > 0;
+                    console.log('Extracted State (likeCount, userHasLiked):', likeCount, userHasLiked); // Kept from before
+
+                    const modalImage = interpretationModal.querySelector('#modalImage');
+                    const modalArtistInfo = interpretationModal.querySelector('#modalArtistInfo');
+                    const modalDescription = interpretationModal.querySelector('#modalDescription');
+                    const modalFooterActions = interpretationModal.querySelector('#modalFooterActions');
+                    console.log('Found modal internal elements.'); // Kept from before
+
+                    // 1. Populate header
+                    modalArtistInfo.innerHTML = `
+                        <a href="public_profile.php?user_id=${artistId}" class="text-decoration-none d-flex align-items-center">
+                            <img src="${artistAvatar}" alt="${artistName}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            <span class="fw-bold text-dark h5 mb-0">${artistName}</span>
+                        </a>
+                    `;
+
+                    // 2. Populate body
+                    modalImage.src = imgSrc;
+                    modalImage.alt = `Interpretation by ${artistName}`;
+                    modalDescription.textContent = (description && description.trim() !== "") ? `"${description}"` : 'No description provided.';
+
+                    // 3. Populate footer
+                    const likeIconClass = userHasLiked ? 'fas fa-heart text-danger' : 'fas fa-heart text-secondary';
+                    modalFooterActions.innerHTML = `
+                        <button type="button" id="modalLikeButton" class="btn btn-outline-danger" data-interpretation-id="${interpretationId}">
+                            <i id="modalLikeIcon" class="${likeIconClass} me-1"></i> 
+                            <span id="modalLikeCount">${likeCount}</span>
+                        </button>
+                    `;
+                    console.log('Modal HTML populated.'); // Kept from before
+
+                    // 4. Add listener to new like button
+                    const modalLikeButton = modalFooterActions.querySelector('#modalLikeButton');
+                    if (modalLikeButton) {
+                        console.log('Adding click listener to modal like button.'); // Kept from before
+                        modalLikeButton.addEventListener('click', function() {
+                            if (!isUserLoggedIn) {
+                                const modalInstance = bootstrap.Modal.getInstance(interpretationModal);
+                                modalInstance.hide();
+                                showLoginPromptModal('Login Required', 'You must be logged in to like this interpretation.');
+                                return;
+                            }
+
+                            const interpId = this.dataset.interpretationId;
+                            const formData = new FormData();
+                            formData.append('interpretation_id', interpId);
+
+                            fetch('handle_interpretation_like.php', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        likeCount = data.likeCount;
+                                        userHasLiked = data.userHasLiked;
+
+                                        const icon = document.getElementById('modalLikeIcon');
+                                        const countSpan = document.getElementById('modalLikeCount');
+
+                                        countSpan.textContent = likeCount;
+                                        icon.className = userHasLiked ? 'fas fa-heart text-danger me-1' : 'fas fa-heart text-secondary me-1';
+
+                                        button.dataset.likeCount = likeCount;
+                                        button.dataset.userHasLiked = userHasLiked ? '1' : '0';
+                                    } else {
+                                        console.error('Failed to like interpretation:', data.error);
+                                    }
+                                });
+                        });
+                    }
+                    console.log('--- MODAL DEBUG END ---'); // Kept from before
+                });
+
+                console.log('--- DEBUG --- Event listener attached.'); // NEW
+
+            } else {
+                console.log('--- DEBUG ERROR --- Could not find element with ID "interpretationModal". Event listener NOT attached.'); // NEW
+            }
+
+            // Handle Star Rating submission
+            const ratingInputs = document.querySelectorAll('.star-rating-input input');
+            ratingInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    if (!isUserLoggedIn) {
+                        showLoginPromptModal('Login Required', 'You must be logged in to rate an author.');
+                        this.checked = false;
+                        return;
+                    }
+
+                    const ratedUserId = this.closest('.star-rating-input').dataset.ratedUserId;
+                    const ratingValue = this.value;
+
+                    const formData = new FormData();
+                    formData.append('rated_user_id', ratedUserId);
+                    formData.append('rating_value', ratingValue);
+
+                    fetch('handle_rating.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('Rating saved:', data);
+                            } else {
+                                console.error('Failed to save rating:', data.error);
+                            }
+                        });
+                });
+            });
+
+            console.log('--- DEBUG --- End of DOMContentLoaded script.'); // NEW
         });
     </script>
 </body>

@@ -1,270 +1,827 @@
 <?php
-require_once "admin_auth_check.php";
-requireAdmin();
+require 'config.php'; // Defines $mysqli
+require 'auth_check.php';
+require 'helpers.php'; // For timeAgo()
 
-$user_id = $_SESSION['user_id'];
-$success_message = $error_message = '';
+// Secure this page and get admin ID
+$admin_user_id = requireAdmin();
 
-// Fetch admin user data
-$admin_data = array();
-$sql = "SELECT u.*, 
-        (SELECT COUNT(*) FROM challenges) as total_artworks,
-        (SELECT COUNT(*) FROM users WHERE user_type = 'user') as total_users,
-        (SELECT COUNT(*) FROM comments) as total_comments
-        FROM users u 
-        WHERE u.user_id = ? AND u.user_type = 'admin'";
+$success_message = '';
+$error_message = '';
 
-if ($stmt = $mysqli->prepare($sql)) {
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
-        $admin_data = $row;
-    }
-    $stmt->close();
+// Fetch fresh admin data for display
+$user = [];
+$stmt = $mysqli->prepare("SELECT user_userName, user_email, user_profile_pic, user_bio, user_banner_pic, show_art, show_history, show_comments FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $admin_user_id);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+// --- Fetch user-specific stats (like profile.php) ---
+$challenges_declared_count = 0;
+$sql_challenges = "SELECT COUNT(*) as count FROM challenges WHERE user_id = ?";
+if ($stmt_challenges = $mysqli->prepare($sql_challenges)) {
+    $stmt_challenges->bind_param("i", $admin_user_id);
+    $stmt_challenges->execute();
+    $challenges_declared_count = $stmt_challenges->get_result()->fetch_assoc()['count'];
+    $stmt_challenges->close();
 }
 
-// Handle profile updates
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (isset($_POST['update_profile'])) {
-        $new_email = trim($_POST['email']);
-        $new_username = trim($_POST['username']);
-        $current_password = trim($_POST['current_password']);
-        $new_password = trim($_POST['new_password']);
-        
-        // Verify current password
-        if (!empty($current_password)) {
-            $sql = "SELECT user_password FROM users WHERE user_id = ?";
-            if ($stmt = $mysqli->prepare($sql)) {
-                $stmt->bind_param("i", $user_id);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                if ($row = $result->fetch_assoc()) {
-                    if (password_verify($current_password, $row['user_password'])) {
-                        // Update profile
-                        $updates = array();
-                        $types = "";
-                        $params = array();
-
-                        if (!empty($new_email)) {
-                            $updates[] = "user_email = ?";
-                            $types .= "s";
-                            $params[] = $new_email;
-                        }
-
-                        if (!empty($new_username)) {
-                            $updates[] = "user_userName = ?";
-                            $types .= "s";
-                            $params[] = $new_username;
-                        }
-
-                        if (!empty($new_password)) {
-                            $updates[] = "user_password = ?";
-                            $types .= "s";
-                            $params[] = password_hash($new_password, PASSWORD_DEFAULT);
-                        }
-
-                        if (!empty($updates)) {
-                            $sql = "UPDATE users SET " . implode(", ", $updates) . " WHERE user_id = ?";
-                            $types .= "i";
-                            $params[] = $user_id;
-
-                            if ($stmt = $mysqli->prepare($sql)) {
-                                $stmt->bind_param($types, ...$params);
-                                if ($stmt->execute()) {
-                                    $success_message = "Profile updated successfully!";
-                                } else {
-                                    $error_message = "Error updating profile.";
-                                }
-                                $stmt->close();
-                            }
-                        }
-                    } else {
-                        $error_message = "Current password is incorrect.";
-                    }
-                }
-                $stmt->close();
-            }
-        } else {
-            $error_message = "Please enter your current password to make changes.";
-        }
-    }
-
-    // Handle avatar upload
-    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $max_size = 5 * 1024 * 1024; // 5MB
-
-        if (in_array($_FILES['avatar']['type'], $allowed_types) && $_FILES['avatar']['size'] <= $max_size) {
-            $extension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
-            $new_filename = 'avatar_' . $user_id . '.' . $extension;
-            $upload_path = 'assets/images/avatars/' . $new_filename;
-
-            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $upload_path)) {
-                $sql = "UPDATE users SET avatar_url = ? WHERE user_id = ?";
-                if ($stmt = $mysqli->prepare($sql)) {
-                    $stmt->bind_param("si", $new_filename, $user_id);
-                    if ($stmt->execute()) {
-                        $success_message = "Avatar updated successfully!";
-                    } else {
-                        $error_message = "Error updating avatar in database.";
-                    }
-                    $stmt->close();
-                }
-            } else {
-                $error_message = "Error uploading avatar file.";
-            }
-        } else {
-            $error_message = "Invalid file type or size. Please use JPG, PNG, or GIF under 5MB.";
-        }
-    }
+$arts_challenged_count = 0;
+$sql_interpretations = "SELECT COUNT(*) as count FROM interpretations WHERE user_id = ?";
+if ($stmt_interpretations = $mysqli->prepare($sql_interpretations)) {
+    $stmt_interpretations->bind_param("i", $admin_user_id);
+    $stmt_interpretations->execute();
+    $arts_challenged_count = $stmt_interpretations->get_result()->fetch_assoc()['count'];
+    $stmt_interpretations->close();
 }
+$total_art_made = $challenges_declared_count + $arts_challenged_count;
 
-// Fetch recent activity
-$recent_activity = array();
-$sql = "SELECT 'challenge' as type, challenge_name as name, created_at
-        FROM challenges 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        UNION ALL
-        SELECT 'comment' as type, comment_text as name, created_at
-        FROM comments 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        ORDER BY created_at DESC 
-        LIMIT 10";
-
-if ($result = $mysqli->query($sql)) {
+// --- Fetch content for tabs ---
+$user_challenges = [];
+$sql_user_challenges = "SELECT challenge_id, challenge_name, original_art_filename FROM challenges WHERE user_id = ? ORDER BY created_at DESC";
+if ($stmt_user_challenges = $mysqli->prepare($sql_user_challenges)) {
+    $stmt_user_challenges->bind_param("i", $admin_user_id);
+    $stmt_user_challenges->execute();
+    $result = $stmt_user_challenges->get_result();
     while ($row = $result->fetch_assoc()) {
-        $recent_activity[] = $row;
+        $user_challenges[] = $row;
     }
-    $result->free();
+    $stmt_user_challenges->close();
 }
+
+$user_history = [];
+$sql_history = "(SELECT
+                    'created_challenge' as event_type,
+                    challenge_name as event_title,
+                    NULL as event_content,
+                    challenge_id,
+                    created_at as event_date
+                FROM challenges
+                WHERE user_id = ?)
+                UNION
+                (SELECT
+                    'posted_comment' as event_type,
+                    ch.challenge_name as event_title,
+                    co.comment_text as event_content,
+                    co.challenge_id,
+                    co.created_at as event_date
+                FROM comments co
+                JOIN challenges ch ON co.challenge_id = ch.challenge_id
+                WHERE co.user_id = ?)
+                UNION
+                (SELECT
+                    'created_interpretation' as event_type,
+                    ch.challenge_name as event_title,
+                    i.description as event_content,
+                    i.challenge_id,
+                    i.created_at as event_date
+                FROM interpretations i
+                JOIN challenges ch ON i.challenge_id = ch.challenge_id
+                WHERE i.user_id = ?)
+                UNION
+                (SELECT
+                    'liked_challenge' as event_type,
+                    ch.challenge_name as event_title,
+                    NULL as event_content,
+                    l.challenge_id,
+                    l.created_at as event_date
+                FROM likes l
+                JOIN challenges ch ON l.challenge_id = ch.challenge_id
+                WHERE l.user_id = ?)
+                UNION
+                (SELECT
+                    'liked_interpretation' as event_type,
+                    u.user_userName as event_title,
+                    ch.challenge_name as event_content,
+                    ch.challenge_id,
+                    il.created_at as event_date
+                FROM interpretation_likes il
+                JOIN interpretations i ON il.interpretation_id = i.interpretation_id
+                JOIN users u ON i.user_id = u.user_id
+                JOIN challenges ch ON i.challenge_id = ch.challenge_id
+                WHERE il.user_id = ?)
+                ORDER BY event_date DESC
+                LIMIT 10";
+
+if ($stmt_history = $mysqli->prepare($sql_history)) {
+    // We now need to bind the user_id five times
+    $stmt_history->bind_param("iiiii", $admin_user_id, $admin_user_id, $admin_user_id, $admin_user_id, $admin_user_id);
+    $stmt_history->execute();
+    $result = $stmt_history->get_result();
+    $user_history = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt_history->close();
+}
+
+$comments_on_art = [];
+$sql_comments_on_art = "SELECT co.*, u.user_userName, u.user_profile_pic, ch.challenge_name
+                        FROM comments co
+                        JOIN users u ON co.user_id = u.user_id
+                        JOIN challenges ch ON co.challenge_id = ch.challenge_id
+                        WHERE ch.user_id = ? AND co.user_id != ?
+                        ORDER BY co.created_at DESC LIMIT 10";
+if ($stmt_comments_on_art = $mysqli->prepare($sql_comments_on_art)) {
+    $stmt_comments_on_art->bind_param("ii", $admin_user_id, $admin_user_id);
+    $stmt_comments_on_art->execute();
+    $result = $stmt_comments_on_art->get_result();
+    $comments_on_art = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt_comments_on_art->close();
+}
+
+$avg_rating = 0.0;
+$rating_count = 0;
+$sql_rating = "SELECT AVG(rating_value) as avg_rating, COUNT(*) as rating_count FROM ratings WHERE rated_user_id = ?";
+if ($stmt_rating = $mysqli->prepare($sql_rating)) {
+    $stmt_rating->bind_param("i", $admin_user_id);
+    $stmt_rating->execute();
+    $result = $stmt_rating->get_result()->fetch_assoc();
+    if ($result && $result['rating_count'] > 0) {
+        $avg_rating = round($result['avg_rating'], 1);
+        $rating_count = $result['rating_count'];
+    }
+    $stmt_rating->close();
+}
+
+function generate_stars($rating)
+{
+    $rating = round($rating * 2) / 2;
+    for ($i = 1; $i <= 5; $i++) {
+        if ($rating >= $i) echo '<i class="fas fa-star"></i>';
+        elseif ($rating > ($i - 1)) echo '<i class="fas fa-star-half-alt"></i>';
+        else echo '<i class="far fa-star"></i>';
+    }
+}
+
+// --- Fetch Platform Statistics (Admin-specific) ---
+$platform_stats = [
+    'total_users' => $mysqli->query("SELECT COUNT(*) FROM users")->fetch_row()[0],
+    'total_artworks' => $mysqli->query("SELECT COUNT(*) FROM challenges")->fetch_row()[0],
+    'total_comments' => $mysqli->query("SELECT COUNT(*) FROM comments")->fetch_row()[0]
+];
+
+// --- Image Paths ---
+$profilePicPath = !empty($user['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars($user['user_profile_pic']) : 'assets/images/blank-profile-picture.png';
+$bannerPicPath = !empty($user['user_banner_pic']) ? 'assets/uploads/' . htmlspecialchars($user['user_banner_pic']) : 'assets/images/night-road.png';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BattleArt Admin Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
-    <!-- Keep your existing CSS -->
+    <link rel="stylesheet" href="assets/css/navbar.css">
+    <style>
+        :root {
+            --primary-bg: #8c76ec;
+            --secondary-bg: #a6e7ff;
+            --light-purple: #c3b4fc;
+            --dark-purple-border: #7b68ee;
+            --text-dark: #333;
+        }
+
+        /* Merged Admin Stats Card Styles */
+        .admin-stats-card {
+            background: var(--light-purple);
+            color: white;
+        }
+
+        .admin-stats-card h3 {
+            font-size: 2rem;
+            color: var(--primary-bg);
+        }
+
+        /* Styles from profile.php */
+        body {
+            background-image: linear-gradient(to bottom, var(--secondary-bg), var(--light-purple));
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding-top: 20px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .profile-container {
+            background-color: #fff;
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 900px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            color: var(--text-dark);
+        }
+
+        .profile-banner {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            margin-right: 1.5rem;
+        }
+
+        .profile-info h3 {
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+        }
+
+        .profile-info .badge {
+            font-size: 0.75rem;
+            font-weight: normal;
+            background-color: var(--light-purple);
+            color: #fff;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        .profile-info .text-muted {
+            font-size: 0.9rem;
+            color: #777 !important;
+            margin-top: 0.5rem;
+        }
+
+        .profile-actions {
+            margin-left: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .profile-actions .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-profile {
+            background-color: var(--light-purple);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-profile:hover {
+            background-color: var(--primary-bg);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+
+        .profile-tabs .nav-link {
+            color: #6c757d;
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-bottom 0.2s;
+        }
+
+        .profile-tabs .nav-link:hover {
+            color: var(--primary-bg);
+        }
+
+        .profile-tabs .nav-link.active {
+            color: var(--primary-bg);
+            border-bottom-color: var(--primary-bg);
+        }
+
+
+        .stats-grid {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex-grow: 1;
+            padding: 0.5rem;
+            position: relative;
+        }
+
+        .stat-item:not(:last-child):after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 80%;
+            background-color: #e9ecef;
+        }
+
+        .stat-item h6 {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+        }
+
+        .stat-item p {
+            font-size: 0.8rem;
+            color: #777;
+            margin: 0;
+        }
+
+
+        .goal-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .goal-item .goal-year {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--primary-bg);
+        }
+
+        .goal-item .goal-progress {
+            font-size: 0.8rem;
+            color: #777;
+        }
+
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .welcome-section h4 {
+            font-weight: 300;
+            font-size: 1.5rem;
+            color: var(--light-purple);
+            font-style: italic;
+        }
+
+        .welcome-section h5 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+
+        .star-rating {
+            font-size: 1.5rem;
+            color: #ffda6a;
+            display: inline-block;
+        }
+
+
+        .prioritizing-section {
+            text-align: center;
+            border-top: 2px solid #ddd;
+            padding-top: 2rem;
+        }
+
+        .prioritizing-section h5 {
+            color: var(--text-dark);
+            font-weight: bold;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Session info alert */
+        .session-info {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+            color: white;
+        }
+
+
+        .art-card {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .art-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .art-card-body {
+            padding: 1rem;
+            color: var(--text-dark);
+        }
+
+        .art-card-body h6 {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .art-card-body p {
+            font-size: 0.85rem;
+            color: #777;
+            margin: 0;
+        }
+
+        .art-card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.75rem;
+        }
+
+        .art-card-actions .icon-link {
+            color: #6c757d;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .art-card-actions .icon-link:hover {
+            color: var(--primary-bg);
+        }
+
+
+        .log-item,
+        .comment-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px dashed #ddd;
+        }
+
+        .log-item:last-child,
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-icon,
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--light-purple);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            margin-right: 1rem;
+        }
+
+        .comment-avatar {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .comment-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .log-content,
+        .comment-content {
+            flex-grow: 1;
+        }
+
+        .log-content p,
+        .comment-text {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .comment-text strong {
+            color: var(--primary-bg);
+        }
+
+        .log-date,
+        .comment-date {
+            font-size: 0.8rem;
+            color: #777;
+            margin-top: 0.25rem;
+        }
+
+
+
+        @media (max-width: 768px) {
+            .profile-container {
+                padding: 1rem;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .profile-info {
+                margin-top: 1rem;
+            }
+
+            .profile-actions {
+                margin-top: 1rem;
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                flex-direction: column;
+            }
+
+            .stat-item:not(:last-child):after {
+                display: none;
+            }
+
+            .stat-item {
+                border-bottom: 2px solid #ddd;
+                margin-bottom: 1rem;
+            }
+
+            .stat-item:last-child {
+                border-bottom: none;
+            }
+
+            /* Hide username on small screens for navbar */
+            .navbar-custom .d-md-inline {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="admin_dashboard.php">
-                <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
-                <span class="navbar-brand-text">BattleArt Admin</span>
-            </a>
-            <div class="navbar-nav ms-auto">
-                <a href="logout.php" class="nav-link nav-link-custom">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php require 'partials/navbar.php'; ?>
 
     <div class="profile-container">
-        <?php if (!empty($success_message)): ?>
-            <div class="alert alert-success"><?php echo $success_message; ?></div>
-        <?php endif; ?>
-        <?php if (!empty($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
-        <?php endif; ?>
+        <img id="banner-img" src="<?php echo $bannerPicPath; ?>" alt="User Profile Banner" class="profile-banner">
 
-        <img id="banner-img" src="assets/images/night-road.png" alt="Admin Profile Banner" class="profile-banner">
+        <ul class="nav nav-pills profile-tabs" id="profile-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" id="profile-tab" href="#">Profile</a>
+            </li>
+            <?php if ($user['show_art'] == 1): ?>
+                <li class="nav-item">
+                    <a class="nav-link" id="your-art-tab" href="#">Your art</a>
+                </li>
+            <?php endif; ?>
+            <?php if ($user['show_history'] == 1): ?>
+                <li class="nav-item">
+                    <a class="nav-link" id="history-tab" href="#">History</a>
+                </li>
+            <?php endif; ?>
+            <?php if ($user['show_comments'] == 1): ?>
+                <li class="nav-item">
+                    <a class="nav-link" id="comments-tab" href="#">Comments</a>
+                </li>
+            <?php endif; ?>
+            <li class="nav-item"><a class="nav-link" id="admin-stats-tab" href="#">Admin Stats</a></li>
+        </ul>
 
-        <div class="profile-header">
-            <img src="<?php echo htmlspecialchars($admin_data['user_profile_pic'] ?? 'assets/images/default_avatar.png'); ?>" 
-                 alt="Admin Avatar" class="profile-avatar">
-            <div class="profile-info">
-                <h3><?php echo htmlspecialchars($admin_data['user_userName']); ?></h3>
-                <span class="badge bg-primary">Administrator</span>
-                <p class="text-muted mt-2">
-                    <i class="fas fa-envelope"></i> <?php echo htmlspecialchars($admin_data['user_email']); ?>
-                </p>
+        <div id="profile-content">
+            <div class="profile-header">
+                <div class="position-relative">
+                    <img id="avatar-img" src="<?php echo $profilePicPath; ?>" alt="User Avatar" class="profile-avatar">
+                </div>
+                <div class="profile-info">
+                    <h3><?php echo htmlspecialchars($user['user_userName']); ?> <span class="badge">Administrator</span></h3>
+                    <div class="profile-meta text-muted">
+                        Email: <?php echo htmlspecialchars($user['user_email']); ?><br>
+                    </div>
+                </div>
+                <div class="profile-actions">
+                    <div class="btn-group">
+                        <a href="edit-profile.php" class="btn btn-profile">Edit</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <i class="fas fa-bullhorn fa-2x mb-2" style="color: var(--primary-bg);"></i>
+                    <h6>Challenges declared</h6>
+                    <p>— <?php echo $challenges_declared_count; ?> challenges</p>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-paint-brush fa-2x mb-2" style="color: var(--primary-bg);"></i>
+                    <h6>Arts Challenged</h6>
+                    <p>— <?php echo $arts_challenged_count; ?> arts</p>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-images fa-2x mb-2" style="color: var(--primary-bg);"></i>
+                    <h6>Number of Art made</h6>
+                    <p>— <?php echo $total_art_made; ?> arts</p>
+                </div>
+            </div>
+
+            <div class="welcome-section">
+                <h4>Welcome to <?php echo htmlspecialchars($user['user_userName']); ?>'s art battle profile!</h4>
+                <p><?php echo nl2br(htmlspecialchars($user['user_bio'] ?? '')); ?></p>
+
+                <div class="star-rating">
+                    <?php generate_stars($avg_rating); ?>
+                </div>
+                <?php if ($rating_count > 0): ?>
+                    <p class="text-muted mt-2">
+                        <strong><?php echo $avg_rating; ?></strong> average rating from <strong><?php echo $rating_count; ?></strong> user(s).
+                    </p>
+                <?php else: ?>
+                    <p class="text-muted mt-2">No ratings yet.</p>
+                <?php endif; ?>
             </div>
         </div>
 
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Platform Statistics</h5>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <h4><?php echo $admin_data['total_users']; ?></h4>
-                                <p>Total Users</p>
-                            </div>
-                            <div class="stat-item">
-                                <h4><?php echo $admin_data['total_artworks']; ?></h4>
-                                <p>Total Artworks</p>
-                            </div>
-                            <div class="stat-item">
-                                <h4><?php echo $admin_data['total_comments']; ?></h4>
-                                <p>Total Comments</p>
+        <div id="your-art-content" style="display: none;">
+            <h2 class="mb-4 h4 fw-bold">Your Original Challenges</h2>
+            <div class="row">
+                <?php if (empty($user_challenges)): ?>
+                    <p class="text-muted">You haven't created any challenges yet. <a href="createchallenge.php">Create one now!</a></p>
+                <?php else: ?>
+                    <?php foreach ($user_challenges as $art): ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card art-card h-100">
+                                <img src="assets/uploads/<?php echo htmlspecialchars($art['original_art_filename']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($art['challenge_name']); ?>" style="height: 150px; object-fit: cover;">
+                                <div class="card-body art-card-body d-flex flex-column">
+                                    <h6 class="card-title"><?php echo htmlspecialchars($art['challenge_name']); ?></h6>
+                                    <a href="challengepage.php?id=<?php echo $art['challenge_id']; ?>" class="btn btn-sm btn-outline-primary mt-auto">View Challenge</a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Recent Activity</h5>
-                        <ul class="list-unstyled">
-                            <?php foreach ($recent_activity as $activity): ?>
-                                <li class="mb-2">
-                                    <i class="fas fa-<?php echo $activity['type'] == 'challenge' ? 'palette' : 'comment'; ?>"></i>
-                                    New <?php echo $activity['type']; ?>: 
-                                    <?php echo htmlspecialchars(substr($activity['name'], 0, 30)) . (strlen($activity['name']) > 30 ? '...' : ''); ?>
-                                    <small class="text-muted d-block">
-                                        <?php echo date('M j, Y g:i A', strtotime($activity['created_at'])); ?>
-                                    </small>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
+        </div>
 
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Edit Profile</h5>
-                        <form method="POST" action="" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label class="form-label">Username</label>
-                                <input type="text" name="username" class="form-control" 
-                                       value="<?php echo htmlspecialchars($admin_data['user_userName']); ?>">
+        <div id="history-content" style="display: none;">
+            <h2 class="mb-4 h4 fw-bold">Your Recent Activity</h2>
+            <?php if (empty($user_history)): ?>
+                <p class="text-muted">You have no recent activity.</p>
+            <?php else: ?>
+                <?php foreach ($user_history as $event): ?>
+                    <div class="log-item">
+                        <?php if ($event['event_type'] === 'created_challenge'): ?>
+                            <div class="log-icon"><i class="fas fa-plus-circle"></i></div>
+                            <div class="log-content">
+                                <p>You created the challenge <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>.</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" name="email" class="form-control" 
-                                       value="<?php echo htmlspecialchars($admin_data['user_email']); ?>">
+                        <?php elseif ($event['event_type'] === 'posted_comment'): ?>
+                            <div class="log-icon"><i class="fas fa-comment"></i></div>
+                            <div class="log-content">
+                                <p>You commented on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>: "<?php echo htmlspecialchars($event['event_content']); ?>"</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Avatar</label>
-                                <input type="file" name="avatar" class="form-control" accept="image/*">
+                        <?php elseif ($event['event_type'] === 'created_interpretation'):
+                            $interp_desc = !empty($event['event_content']) ? ': "' . htmlspecialchars(substr($event['event_content'], 0, 50)) . '..."' : '.';
+                        ?>
+                            <div class="log-icon"><i class="fas fa-paint-brush"></i></div>
+                            <div class="log-content">
+                                <p>You submitted an interpretation on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a><?php echo $interp_desc; ?></p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Current Password</label>
-                                <input type="password" name="current_password" class="form-control">
+                        <?php elseif ($event['event_type'] === 'liked_challenge'): ?>
+                            <div class="log-icon text-danger"><i class="fas fa-heart"></i></div>
+                            <div class="log-content">
+                                <p>You liked the challenge <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>.</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">New Password (leave blank to keep current)</label>
-                                <input type="password" name="new_password" class="form-control">
+                        <?php elseif ($event['event_type'] === 'liked_interpretation'): ?>
+                            <div class="log-icon text-danger"><i class="fas fa-heart"></i></div>
+                            <div class="log-content">
+                                <p>You liked <strong><?php echo htmlspecialchars($event['event_title']); ?>'s</strong> interpretation on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_content']); ?></strong></a>.</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
-                            <button type="submit" name="update_profile" class="btn btn-primary">
-                                Update Profile
-                            </button>
-                        </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
+        <div id="comments-content" style="display: none;">
+            <h2 class="mb-4 h4 fw-bold">Recent Comments on Your Art</h2>
+            <?php if (empty($comments_on_art)): ?>
+                <p class="text-muted">No one has commented on your challenges yet.</p>
+            <?php else: ?>
+                <?php foreach ($comments_on_art as $comment): ?>
+                    <?php $avatar = !empty($comment['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars($comment['user_profile_pic']) : 'assets/images/blank-profile-picture.png'; ?>
+                    <div class="comment-item">
+                        <div class="comment-avatar"><img src="<?php echo $avatar; ?>" alt=""></div>
+                        <div class="comment-content">
+                            <p class="comment-text"><strong><?php echo htmlspecialchars($comment['user_userName']); ?></strong> commented on <a href="challengepage.php?id=<?php echo $comment['challenge_id']; ?>"><strong><?php echo htmlspecialchars($comment['challenge_name']); ?></strong></a>: "<?php echo htmlspecialchars($comment['comment_text']); ?>"</p>
+                            <div class="comment-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($comment['created_at'])); ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
+        <div id="admin-stats-content" class="p-4" style="display: none;">
+            <h2 class="mb-4 h4 fw-bold">Platform Statistics</h2>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center admin-stats-card p-3">
+                        <h3><?php echo $platform_stats['total_users']; ?></h3>
+                        <p class="mb-0">Total Users</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center admin-stats-card p-3">
+                        <h3><?php echo $platform_stats['total_artworks']; ?></h3>
+                        <p class="mb-0">Total Artworks</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center admin-stats-card p-3">
+                        <h3><?php echo $platform_stats['total_comments']; ?></h3>
+                        <p class="mb-0">Total Comments</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.profile-tabs .nav-link');
+            // Select all content divs inside the container
+            const contentSections = document.querySelectorAll('.profile-container > div');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    tabs.forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+                    const contentId = e.target.id.replace('-tab', '-content');
+
+                    contentSections.forEach(section => {
+                        // Check if the section is one of the tab-controlled content areas
+                        if (section.id && ['profile-content', 'your-art-content', 'history-content', 'comments-content', 'admin-stats-content'].includes(section.id)) {
+                            section.style.display = 'none';
+                        }
+                    });
+
+                    const activeContent = document.getElementById(contentId);
+                    if (activeContent) {
+                        activeContent.style.display = 'block';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
+
 </html>

@@ -1,44 +1,50 @@
 <?php
-require_once "admin_auth_check.php";
-requireAdmin();
+require 'config.php'; // Defines $mysqli
+require 'auth_check.php';
+require 'helpers.php'; // Includes getAvatarPath() and timeAgo()
 
-// Ensure session data is available
-if (!isset($_SESSION['username']) || !isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
-    header("Location: login.php");
-    exit;
-}
+// Secure this page and get the admin's ID
+$admin_user_id = requireAdmin();
 
-// Fetch users data
-$users = array();
-$sql = "SELECT u.*,
-        (SELECT MAX(login_time) FROM user_activity WHERE user_id = u.user_id) as last_seen,
-        (SELECT login_time FROM user_activity WHERE user_id = u.user_id ORDER BY login_time DESC LIMIT 1) as joined_date
-        FROM users u
-        ORDER BY u.user_id DESC";
-if ($result = $mysqli->query($sql)) {
-    while ($row = $result->fetch_assoc()) {
-        $users[] = $row;
-    }
-    $result->free();
-}
+// Fetch all users *except* the currently logged-in admin
+$users = [];
+$sql = "SELECT user_id, user_userName, user_profile_pic, user_type, joined_date, last_seen 
+        FROM users 
+        WHERE user_id != ?
+        ORDER BY joined_date DESC";
 
-// Helper function to format time ago
-function timeAgo($time) {
-    $diff = time() - strtotime($time);
-   
-    if ($diff < 60) {
-        return "Just now";
-    } elseif ($diff < 3600) {
-        return floor($diff/60) . " mins ago";
-    } elseif ($diff < 86400) {
-        return floor($diff/3600) . " hours ago";
+if ($stmt = $mysqli->prepare($sql)) {
+    $stmt->bind_param("i", $admin_user_id);
+    if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        $users = $result->fetch_all(MYSQLI_ASSOC);
     } else {
-        return floor($diff/86400) . " days ago";
+        die("Error executing query: " . $stmt->error);
     }
+    $stmt->close();
+} else {
+    die("Error preparing statement: " . $mysqli->error);
 }
+
+// Calculate stats
+$total_users_result = $mysqli->query("SELECT COUNT(*) FROM users");
+$total_users = $total_users_result->fetch_row()[0];
+$total_users_result->free();
+
+// Get count of *all* admins
+$total_admins_result = $mysqli->query("SELECT COUNT(*) FROM users WHERE user_type = 'admin'");
+$total_admins = $total_admins_result->fetch_row()[0];
+$total_admins_result->free();
+
+$total_regular_users = $total_users - $total_admins;
+
+$authorAvatarPath = !empty($challenge['user_profile_pic'])
+    ? 'assets/uploads/' . htmlspecialchars($challenge['user_profile_pic'])
+    : 'assets/images/default-avatar.png';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,6 +53,8 @@ function timeAgo($time) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
+    <link rel="stylesheet" href="assets/css/navbar.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
             --primary-bg: #8c76ec;
@@ -55,6 +63,7 @@ function timeAgo($time) {
             --dark-purple-border: #7b68ee;
             --text-dark: #333;
         }
+
         body {
             background-color: var(--secondary-bg);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -62,54 +71,16 @@ function timeAgo($time) {
             padding: 0;
             color: var(--text-dark);
         }
-        .navbar-custom {
-            background-color: var(--primary-bg);
-            padding: 1rem 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .navbar-brand-text {
-            color: #fff;
-            font-weight: bold;
-            font-size: 1.25rem;
-        }
-        .nav-link-custom {
-            color: #fff !important;
-            font-weight: 500;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: background-color 0.2s ease;
-        }
-        .nav-link-custom:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .dropdown-menu {
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 0.5rem;
-        }
-        .dropdown-item {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-        }
-        .dropdown-item:hover {
-            background-color: var(--light-purple);
-            color: #fff;
-        }
-        .dropdown-divider {
-            margin: 0.5rem 0;
-        }
-        .navbar-brand:hover .navbar-brand-text {
-            opacity: 0.9;
-        }
+
         .dashboard-container {
             max-width: 1200px;
             margin: 3rem auto;
             background: #fff;
             padding: 2.5rem;
             border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
         }
+
         h2 {
             color: var(--primary-bg);
             font-weight: bold;
@@ -117,13 +88,16 @@ function timeAgo($time) {
             text-align: center;
             font-size: 2rem;
         }
+
         .table-responsive {
             border-radius: 12px;
             overflow: hidden;
         }
+
         .table {
             margin-bottom: 0;
         }
+
         .table thead th {
             background-color: var(--light-purple);
             color: #fff;
@@ -133,23 +107,28 @@ function timeAgo($time) {
             text-align: center;
             vertical-align: middle;
         }
+
         .table tbody td {
             vertical-align: middle;
             padding: 1rem;
             text-align: center;
             border-color: #e9ecef;
         }
+
         .table tbody tr {
             transition: background-color 0.2s ease;
         }
+
         .table tbody tr:hover {
             background-color: #f8f9fa;
         }
+
         .avatar-cell {
             display: flex;
             justify-content: center;
             align-items: center;
         }
+
         .avatar-img {
             width: 45px;
             height: 45px;
@@ -157,9 +136,11 @@ function timeAgo($time) {
             border: 2px solid var(--light-purple);
             transition: transform 0.2s ease;
         }
+
         .avatar-img:hover {
             transform: scale(1.1);
         }
+
         .role-badge {
             display: inline-block;
             padding: 0.35rem 0.75rem;
@@ -167,14 +148,17 @@ function timeAgo($time) {
             font-size: 0.85rem;
             font-weight: 600;
         }
+
         .role-admin {
             background-color: #ff6b6b;
             color: #fff;
         }
+
         .role-user {
             background-color: #4ecdc4;
             color: #fff;
         }
+
         .btn-primary-custom {
             background-color: var(--primary-bg);
             border: none;
@@ -187,22 +171,26 @@ function timeAgo($time) {
             text-decoration: none;
             display: inline-block;
         }
+
         .btn-primary-custom:hover {
             background-color: var(--dark-purple-border);
             color: #fff;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(140, 118, 236, 0.3);
         }
+
         .last-seen {
             font-size: 0.9rem;
             color: #666;
         }
+
         .stats-container {
             display: flex;
             gap: 1.5rem;
             margin-bottom: 2rem;
             flex-wrap: wrap;
         }
+
         .stat-card {
             flex: 1;
             min-width: 200px;
@@ -212,27 +200,33 @@ function timeAgo($time) {
             border-radius: 15px;
             box-shadow: 0 4px 12px rgba(140, 118, 236, 0.2);
         }
+
         .stat-card h4 {
             font-size: 2rem;
             margin: 0;
             font-weight: bold;
         }
+
         .stat-card p {
             margin: 0.5rem 0 0 0;
             opacity: 0.9;
             font-size: 0.95rem;
         }
+
         @media (max-width: 768px) {
             .dashboard-container {
                 margin: 1.5rem;
                 padding: 1.5rem;
             }
+
             .stats-container {
                 flex-direction: column;
             }
+
             .table {
                 font-size: 0.85rem;
             }
+
             .table thead th,
             .table tbody td {
                 padding: 0.75rem 0.5rem;
@@ -240,53 +234,25 @@ function timeAgo($time) {
         }
     </style>
 </head>
+
 <body>
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="index.php">
-                <img src="assets/images/home.png" alt="Home Icon" class="me-2" style="width: 24px; height: 24px;">
-                <span class="navbar-brand-text">BattleArt</span>
-            </a>
-            <div class="d-flex align-items-center">
-                <a href="admin_manage_art.php" class="nav-link nav-link-custom me-3">
-                    <i class="bi bi-image me-1"></i> Artworks
-                </a>
-                <a href="admin_manage_comments.php" class="nav-link nav-link-custom me-3">
-                    <i class="bi bi-chat-dots me-1"></i> Comments
-                </a>
-                <div class="dropdown">
-                    <button class="btn btn-link nav-link-custom dropdown-toggle" type="button" id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<?php echo htmlspecialchars($_SESSION['profile_pic'] ?? 'assets/images/default_avatar.png'); ?>" 
-                             alt="Admin Avatar" 
-                             class="rounded-circle me-1"
-                             style="width: 32px; height: 32px; object-fit: cover;">
-                        <span class="d-none d-md-inline"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?></span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
-                        <li><a class="dropdown-item" href="admin_profile.php"><i class="bi bi-person me-2"></i>Profile</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <?php require 'partials/navbar.php'; ?>
 
     <div class="dashboard-container">
         <h2><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h2>
-        
+
         <!-- Statistics Cards -->
         <div class="stats-container">
             <div class="stat-card">
-                <h4><?php echo count($users); ?></h4>
+                <h4><?php echo $total_users; ?></h4>
                 <p><i class="bi bi-people-fill me-1"></i>Total Users</p>
             </div>
             <div class="stat-card">
-                <h4><?php echo count(array_filter($users, function($u) { return $u['user_type'] === 'admin'; })); ?></h4>
+                <h4><?php echo $total_admins; ?></h4>
                 <p><i class="bi bi-shield-fill-check me-1"></i>Admins</p>
             </div>
             <div class="stat-card">
-                <h4><?php echo count(array_filter($users, function($u) { return $u['user_type'] === 'user'; })); ?></h4>
+                <h4><?php echo $total_regular_users; ?></h4>
                 <p><i class="bi bi-person-fill me-1"></i>Regular Users</p>
             </div>
         </div>
@@ -317,9 +283,10 @@ function timeAgo($time) {
                             <tr>
                                 <td>
                                     <div class="avatar-cell">
-                                        <img src="<?php echo htmlspecialchars($user['user_profile_pic'] ?? 'assets/images/default_avatar.png'); ?>" 
-                                             alt="Avatar" 
-                                             class="rounded-circle avatar-img">
+                                        <?php $avatar = !empty($user['user_profile_pic']) ? 'assets/uploads/' . htmlspecialchars(string: $user['user_profile_pic']) : 'assets/images/blank-profile-picture.png'; ?>
+                                        <img src="<?php echo $avatar; ?>"
+                                            alt="Avatar"
+                                            class="rounded-circle avatar-img">
                                     </div>
                                 </td>
                                 <td>
@@ -339,8 +306,8 @@ function timeAgo($time) {
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="admin_manage_user.php?id=<?php echo $user['user_id']; ?>" 
-                                       class="btn btn-primary-custom">
+                                    <a href="admin_manage_user.php?id=<?php echo $user['user_id']; ?>"
+                                        class="btn btn-primary-custom">
                                         <i class="bi bi-eye me-1"></i>View
                                     </a>
                                 </td>
@@ -354,4 +321,5 @@ function timeAgo($time) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

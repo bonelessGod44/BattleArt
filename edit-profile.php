@@ -10,7 +10,11 @@ if (!isset($_SESSION['user_id'])) {
 }
 $user_id = $_SESSION['user_id'];
 
-// Initialize a message variable for user feedback
+// Determine the correct profile link based on user type
+$profile_link = 'profile.php'; // Default for regular users
+if (isset($_SESSION['user_type']) && strtolower($_SESSION['user_type']) === 'admin') {
+    $profile_link = 'admin_profile.php'; // Link for admins
+}
 $message = "";
 
 //FORM SUBMISSION LOGIC: Runs when the "Save Changes" button is clicked
@@ -18,14 +22,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Sanitize and retrieve text inputs
     $fullName = trim($_POST['fullName']);
     $userBio = trim($_POST['userBio']);
-    
+
     // Server-side validation for bio word limit
     $char_limit = 500;
     if (mb_strlen($userBio) > $char_limit) {
-    // If over the limit, truncate the string to 500 characters
-    $userBio = mb_substr($userBio, 0, $char_limit);
-}
-    
+        // If over the limit, truncate the string to 500 characters
+        $userBio = mb_substr($userBio, 0, $char_limit);
+    }
+
     // Retrieve toggle values
     $showArt = isset($_POST['toggleArt']) ? 1 : 0;
     $showHistory = isset($_POST['toggleHistory']) ? 1 : 0;
@@ -75,11 +79,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $params[] = $bannerPicFilename;
         $types .= "s";
     }
-    
+
     $sql .= " WHERE user_id = ?";
     $params[] = $user_id;
     $types .= "i";
-    
+
     $stmt = $mysqli->prepare($sql);
     $stmt->bind_param($types, ...$params);
 
@@ -89,9 +93,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION['message'] = "<div class='p-3 mb-4 rounded-lg text-sm font-medium bg-red-100 text-red-800'>Error: Could not update profile.</div>";
     }
     $stmt->close();
-
-    // Redirect to the main profile page to show the changes and success message
-    header("Location: profile.php");
+    if (isset($_SESSION['user_type']) && strtolower($_SESSION['user_type']) === 'admin') {
+        // Redirect Admin users to their specific profile page
+        header("Location: admin_profile.php");
+    } else {
+        // Redirect regular users to the standard profile page
+        header("Location: profile.php");
+    }
     exit;
 }
 
@@ -115,6 +123,7 @@ if (isset($_SESSION['message'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -122,21 +131,77 @@ if (isset($_SESSION['message'])) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="assets/images/doro.ico">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #a78bfa 0%, #d8b4fe 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 1.5rem 1rem; }
-        .main-container { width: 100%; max-width: 800px; background-color: white; border-radius: 1.5rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); overflow: hidden; }
-        .banner { height: 180px; background-image: url('<?php echo $bannerPicPath; ?>'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.875rem; font-weight: 800; padding: 1rem; }
-        .profile-img-container { width: 120px; height: 120px; border-radius: 50%; background-color: #333; border: 4px solid white; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); overflow: hidden; flex-shrink: 0; }
-        .toggle-label input:checked + .slider { background-color: #8b5cf6; }
-        .slider { background-color: #e0e7ff; transition: .4s; }
-        .toggle-label .slider + span { background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #a78bfa 0%, #d8b4fe 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem 1rem;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .banner {
+            height: 180px;
+            background-image: url('<?php echo $bannerPicPath; ?>');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.875rem;
+            font-weight: 800;
+            padding: 1rem;
+        }
+
+        .profile-img-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #333;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .toggle-label input:checked+.slider {
+            background-color: #8b5cf6;
+        }
+
+        .slider {
+            background-color: #e0e7ff;
+            transition: .4s;
+        }
+
+        .toggle-label .slider+span {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
-<body>
 
-    <a href="profile.php" class="absolute top-4 left-4 bg-white bg-opacity-30 backdrop-blur-sm text-white text-sm font-semibold py-2 px-4 rounded-xl shadow-md hover:bg-opacity-40 transition duration-200 flex items-center z-10">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+<body>
+    <a href="<?php echo $profile_link; ?>" class="absolute top-4 left-4 bg-white bg-opacity-30 backdrop-blur-sm text-white text-sm font-semibold py-2 px-4 rounded-xl shadow-md hover:bg-opacity-40 transition duration-200 flex items-center z-10">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
         Back to Profile
     </a>
 
@@ -164,8 +229,11 @@ if (isset($_SESSION['message'])) {
 
     <div class="main-container">
         <div class="banner">
-             <label for="bannerUpload" class="absolute top-4 right-4 bg-white bg-opacity-30 backdrop-blur-sm text-white text-sm font-semibold py-2 px-3 rounded-xl shadow-md hover:bg-opacity-40 transition duration-200 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.218A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.218A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <label for="bannerUpload" class="absolute top-4 right-4 bg-white bg-opacity-30 backdrop-blur-sm text-white text-sm font-semibold py-2 px-3 rounded-xl shadow-md hover:bg-opacity-40 transition duration-200 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.218A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.218A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
                 Change Banner
             </label>
             <input type="file" id="bannerUpload" class="hidden" accept="image/*">
@@ -174,11 +242,14 @@ if (isset($_SESSION['message'])) {
         <form id="profileSettingsForm" action="edit-profile.php" method="post" enctype="multipart/form-data" class="px-8 pt-6 pb-8 space-y-8">
             <input type="hidden" name="croppedImage" id="croppedImage">
             <input type="hidden" name="croppedBanner" id="croppedBanner">
-            
+
             <div class="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-6">
                 <div class="flex flex-col items-center w-full md:w-auto">
                     <div id="profileImage" class="profile-img-container mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="#ddd" class="w-full h-full p-4 <?php echo !empty($profilePicPath) ? 'hidden' : ''; ?>" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0" /><path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="#ddd" class="w-full h-full p-4 <?php echo !empty($profilePicPath) ? 'hidden' : ''; ?>" viewBox="0 0 16 16">
+                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0" />
+                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1" />
+                        </svg>
                         <img id="editImagePreview" src="<?php echo $profilePicPath; ?>" class="w-full h-full object-cover <?php echo empty($profilePicPath) ? 'hidden' : ''; ?>" alt="Profile Avatar">
                     </div>
                     <label for="profileUpload" class="text-sm font-bold py-2 px-4 text-purple-700 bg-purple-100 rounded-xl shadow-md hover:bg-purple-200 transition duration-150 cursor-pointer whitespace-nowrap">
@@ -209,7 +280,7 @@ if (isset($_SESSION['message'])) {
             </div>
 
             <hr class="border-gray-200" />
-            
+
             <div>
                 <h2 class="text-xl font-bold text-gray-700 mb-4">Privacy Settings</h2>
                 <div class="space-y-3">
@@ -227,12 +298,16 @@ if (isset($_SESSION['message'])) {
                     </div>
                 </div>
             </div>
-            
+
             <?php if (!empty($message)) echo $message; ?>
 
             <div class="pt-4 flex justify-center space-x-4 border-t border-gray-100">
-                <button id="saveButton" type="submit" class="flex items-center px-6 py-2 bg-purple-600 text-white font-semibold rounded-xl shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 13.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>Save Changes</button>
-                <button type="button" onclick="location.reload()" class="flex items-center px-6 py-2 bg-gray-600 text-white font-semibold rounded-xl shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>Cancel</button>
+                <button id="saveButton" type="submit" class="flex items-center px-6 py-2 bg-purple-600 text-white font-semibold rounded-xl shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 13.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>Save Changes</button>
+                <button type="button" onclick="location.reload()" class="flex items-center px-6 py-2 bg-gray-600 text-white font-semibold rounded-xl shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>Cancel</button>
             </div>
             <div id="charLimitAlert" class="hidden mt-4 p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700">
                 <strong>Character limit exceeded!</strong>
@@ -246,23 +321,23 @@ if (isset($_SESSION['message'])) {
             const saveButton = document.getElementById('saveButton');
             const charLimitAlert = document.getElementById('charLimitAlert');
             const countElement = document.getElementById('charCount');
-        
+
             const charCount = bioText.length;
-        
+
             countElement.textContent = charCount;
-            
+
             if (charCount > 500) {
-            countElement.classList.add('text-red-600', 'font-bold');
-            saveButton.disabled = true;
-            saveButton.classList.add('opacity-50', 'cursor-not-allowed');
-            charLimitAlert.classList.remove('hidden');
-        } else {
-            countElement.classList.remove('text-red-600', 'font-bold');
-            saveButton.disabled = false;
-            saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            charLimitAlert.classList.add('hidden');
+                countElement.classList.add('text-red-600', 'font-bold');
+                saveButton.disabled = true;
+                saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+                charLimitAlert.classList.remove('hidden');
+            } else {
+                countElement.classList.remove('text-red-600', 'font-bold');
+                saveButton.disabled = false;
+                saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                charLimitAlert.classList.add('hidden');
+            }
         }
-    }
 
         const profileModal = document.getElementById('cropperModal');
         const profileImageToCrop = document.getElementById('imageToCrop');
@@ -272,13 +347,22 @@ if (isset($_SESSION['message'])) {
 
         profileFileInput.addEventListener('change', (event) => {
             handleFileSelect(event, profileImageToCrop, profileModal, (cropperInstance) => {
-                profileCropper = new Cropper(cropperInstance, { aspectRatio: 1, viewMode: 1, dragMode: 'move', background: false, autoCropArea: 0.8 });
+                profileCropper = new Cropper(cropperInstance, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    background: false,
+                    autoCropArea: 0.8
+                });
             });
         });
 
         profileCropButton.addEventListener('click', () => {
             if (!profileCropper) return;
-            const canvas = profileCropper.getCroppedCanvas({ width: 250, height: 250 });
+            const canvas = profileCropper.getCroppedCanvas({
+                width: 250,
+                height: 250
+            });
             document.getElementById('editImagePreview').src = canvas.toDataURL('image/png');
             document.querySelector('.profile-img-container svg').classList.add('hidden');
             document.getElementById('editImagePreview').classList.remove('hidden');
@@ -295,13 +379,22 @@ if (isset($_SESSION['message'])) {
 
         bannerFileInput.addEventListener('change', (event) => {
             handleFileSelect(event, bannerImageToCrop, bannerModal, (cropperInstance) => {
-                bannerCropper = new Cropper(cropperInstance, { aspectRatio: 16 / 9, viewMode: 1, dragMode: 'move', background: false, autoCropArea: 1 });
+                bannerCropper = new Cropper(cropperInstance, {
+                    aspectRatio: 16 / 9,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    background: false,
+                    autoCropArea: 1
+                });
             });
         });
 
         bannerCropButton.addEventListener('click', () => {
             if (!bannerCropper) return;
-            const canvas = bannerCropper.getCroppedCanvas({ width: 800, height: 450 });
+            const canvas = bannerCropper.getCroppedCanvas({
+                width: 800,
+                height: 450
+            });
             document.querySelector('.banner').style.backgroundImage = `url('${canvas.toDataURL('image/png')}')`;
             document.querySelector('.banner').textContent = '';
             document.getElementById('croppedBanner').value = canvas.toDataURL('image/png');
@@ -323,16 +416,17 @@ if (isset($_SESSION['message'])) {
             };
             reader.readAsDataURL(file);
         }
-        
+
         function closeModal(modal, cropper, input) {
             if (cropper) cropper.destroy();
             modal.classList.add('hidden');
-            if(input) input.value = '';
+            if (input) input.value = '';
         }
-        
+
         window.closeProfileModal = () => closeModal(profileModal, profileCropper, profileFileInput);
         window.closeBannerModal = () => closeModal(bannerModal, bannerCropper, bannerFileInput);
         document.addEventListener('DOMContentLoaded', updateCharCount);
     </script>
 </body>
+
 </html>

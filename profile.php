@@ -8,6 +8,11 @@ require_once 'auth_check.php';
 // Require login to access this page
 requireLogin();
 
+if (isset($_SESSION['user_type']) && strtolower($_SESSION['user_type']) === 'admin') {
+    header("Location: admin_profile.php");
+    exit;
+}
+
 // Get current user info
 $user_info = getSessionInfo();
 $user_email = getCurrentUser();
@@ -86,12 +91,44 @@ $sql_history = "(SELECT
                 FROM comments co
                 JOIN challenges ch ON co.challenge_id = ch.challenge_id
                 WHERE co.user_id = ?)
+                UNION
+                (SELECT
+                    'created_interpretation' as event_type,
+                    ch.challenge_name as event_title,
+                    i.description as event_content,
+                    i.challenge_id,
+                    i.created_at as event_date
+                FROM interpretations i
+                JOIN challenges ch ON i.challenge_id = ch.challenge_id
+                WHERE i.user_id = ?)
+                UNION
+                (SELECT
+                    'liked_challenge' as event_type,
+                    ch.challenge_name as event_title,
+                    NULL as event_content,
+                    l.challenge_id,
+                    l.created_at as event_date
+                FROM likes l
+                JOIN challenges ch ON l.challenge_id = ch.challenge_id
+                WHERE l.user_id = ?)
+                UNION
+                (SELECT
+                    'liked_interpretation' as event_type,
+                    u.user_userName as event_title,
+                    ch.challenge_name as event_content,
+                    ch.challenge_id,
+                    il.created_at as event_date
+                FROM interpretation_likes il
+                JOIN interpretations i ON il.interpretation_id = i.interpretation_id
+                JOIN users u ON i.user_id = u.user_id
+                JOIN challenges ch ON i.challenge_id = ch.challenge_id
+                WHERE il.user_id = ?)
                 ORDER BY event_date DESC
                 LIMIT 10";
 
 if ($stmt_history = $mysqli->prepare($sql_history)) {
-    // We need to bind the user_id twice
-    $stmt_history->bind_param("ii", $user_id, $user_id);
+    // We now need to bind the user_id five times
+    $stmt_history->bind_param("iiiii", $user_id, $user_id, $user_id, $user_id, $user_id);
     $stmt_history->execute();
     $result = $stmt_history->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -630,8 +667,6 @@ $user_badge = $user_types[$user_email] ?? 'User';
                     <h3><?php echo htmlspecialchars($user['user_userName']); ?> <span class="badge"><?php echo htmlspecialchars($user_badge); ?></span></h3>
                     <div class="profile-meta text-muted">
                         Email: <?php echo htmlspecialchars($user['user_email']); ?><br>
-                        Last Activity: <?php echo date('Y-m-d H:i:s', $user_info['last_activity']); ?><br>
-                        Session Started: <?php echo date('M j, Y g:i:s A', $user_info['login_time']); ?><br>
                     </div>
                 </div>
                 <div class="profile-actions">
@@ -661,7 +696,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
 
             <div class="welcome-section">
                 <h4>Welcome to <?php echo htmlspecialchars($user['user_userName']); ?>'s art battle profile!</h4>
-                <p><?php echo nl2br(htmlspecialchars($user['user_bio'])); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($user['user_bio'] ?? '')); ?></p>
 
                 <!-- THIS IS THE DYNAMIC STAR RATING SECTION -->
                 <div class="star-rating">
@@ -681,7 +716,7 @@ $user_badge = $user_types[$user_email] ?? 'User';
             <h2 class="mb-4 h4 fw-bold">Your Original Challenges</h2>
             <div class="row">
                 <?php if (empty($user_challenges)): ?>
-                    <p class="text-muted">You haven't created any challenges yet. <a href="create-challenge.php">Create one now!</a></p>
+                    <p class="text-muted">You haven't created any challenges yet. <a href="createchallenge.php">Create one now!</a></p>
                 <?php else: ?>
                     <?php foreach ($user_challenges as $art): ?>
                         <div class="col-md-4 mb-4">
@@ -715,6 +750,26 @@ $user_badge = $user_types[$user_email] ?? 'User';
                             <div class="log-icon"><i class="fas fa-comment"></i></div>
                             <div class="log-content">
                                 <p>You commented on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>: "<?php echo htmlspecialchars($event['event_content']); ?>"</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
+                            </div>
+                        <?php elseif ($event['event_type'] === 'created_interpretation'):
+                            $interp_desc = !empty($event['event_content']) ? ': "' . htmlspecialchars(substr($event['event_content'], 0, 50)) . '..."' : '.';
+                        ?>
+                            <div class="log-icon"><i class="fas fa-paint-brush"></i></div>
+                            <div class="log-content">
+                                <p>You submitted an interpretation on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a><?php echo $interp_desc; ?></p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
+                            </div>
+                        <?php elseif ($event['event_type'] === 'liked_challenge'): ?>
+                            <div class="log-icon text-danger"><i class="fas fa-heart"></i></div>
+                            <div class="log-content">
+                                <p>You liked the challenge <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></a>.</p>
+                                <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
+                            </div>
+                        <?php elseif ($event['event_type'] === 'liked_interpretation'): ?>
+                            <div class="log-icon text-danger"><i class="fas fa-heart"></i></div>
+                            <div class="log-content">
+                                <p>You liked <strong><?php echo htmlspecialchars($event['event_title']); ?>'s</strong> interpretation on <a href="challengepage.php?id=<?php echo $event['challenge_id']; ?>"><strong><?php echo htmlspecialchars($event['event_content']); ?></strong></a>.</p>
                                 <div class="log-date text-muted"><?php echo date('M j, Y, g:i a', strtotime($event['event_date'])); ?></div>
                             </div>
                         <?php endif; ?>
@@ -769,5 +824,6 @@ $user_badge = $user_types[$user_email] ?? 'User';
         });
     </script>
 </body>
-<?php $mysqli->close();?>
+<?php $mysqli->close(); ?>
+
 </html>

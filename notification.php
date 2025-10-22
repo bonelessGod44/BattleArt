@@ -9,13 +9,14 @@ $user_id = $_SESSION['user_id'];
 
 // Fetch all notifications for the logged-in user
 $notifications = [];
+// This SQL query is now valid because the target_parent_id column exists
 $sql = "SELECT 
             n.*, 
             sender.user_userName AS sender_name,
             challenge.challenge_name
         FROM notifications n
         JOIN users sender ON n.sender_user_id = sender.user_id
-        LEFT JOIN challenges challenge ON n.target_id = challenge.challenge_id
+        LEFT JOIN challenges challenge ON challenge.challenge_id = n.target_id OR challenge.challenge_id = n.target_parent_id
         WHERE n.recipient_user_id = ?
         ORDER BY n.created_at DESC";
 
@@ -30,7 +31,8 @@ if ($stmt = $mysqli->prepare($sql)) {
 }
 
 // A helper function to display time nicely
-function time_ago($datetime) {
+function time_ago($datetime)
+{
     $now = new DateTime;
     $ago = new DateTime($datetime);
     $diff = $now->diff($ago);
@@ -44,6 +46,7 @@ function time_ago($datetime) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,6 +62,7 @@ function time_ago($datetime) {
             --light-purple: #c3b4fc;
             --text-dark: #333;
         }
+
         body {
             background-image: linear-gradient(to bottom, #a6e7ff, #c3b4fc);
             background-repeat: no-repeat;
@@ -67,10 +71,26 @@ function time_ago($datetime) {
             min-height: 100vh;
             padding-top: 80px;
         }
-        .notification-item a { text-decoration: none; color: inherit; }
-        .notification-item.unread { background-color: #f7f7ff; }
-        .notification-item { position: relative; }
-        .notification-item .btn-close { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10; }
+
+        .notification-item a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .notification-item.unread {
+            background-color: #f7f7ff;
+        }
+
+        .notification-item {
+            position: relative;
+        }
+
+        .notification-item .btn-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+        }
     </style>
 </head>
 
@@ -82,7 +102,6 @@ function time_ago($datetime) {
                 <div class="card p-4 shadow-lg">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3 class="fw-bold text-dark mb-0">🔔 Notifications</h3>
-                        <!-- CORRECTED: Buttons are now in a btn-group for correct spacing -->
                         <div class="btn-group">
                             <button id="deleteAllBtn" type="button" class="btn btn-sm btn-outline-danger">Delete All</button>
                             <button id="markAllReadBtn" type="button" class="btn btn-sm btn-outline-secondary">Mark All as Read</button>
@@ -98,8 +117,17 @@ function time_ago($datetime) {
                         <?php else: ?>
                             <?php foreach ($notifications as $notification): ?>
                                 <?php
-                                $icon = ''; $text = ''; $unreadClass = $notification['is_read'] == 0 ? 'unread' : '';
-                                switch ($notification['type']) {
+                                $icon = '';
+                                $text = '';
+                                $unreadClass = $notification['is_read'] == 0 ? 'unread' : '';
+
+                                // Determine the correct challenge ID for the link
+                                $link_challenge_id = $notification['target_id']; // Default for old types
+                                if ($notification['type'] == 'interpretation_like') {
+                                    $link_challenge_id = $notification['target_parent_id'];
+                                }
+
+                                switch ($notification['type']) { // Switched to 'type'
                                     case 'like':
                                         $icon = 'fas fa-heart text-danger';
                                         $text = "<strong>" . htmlspecialchars($notification['sender_name']) . "</strong> liked your challenge: <strong>" . htmlspecialchars($notification['challenge_name']) . "</strong>";
@@ -110,8 +138,15 @@ function time_ago($datetime) {
                                         break;
                                     case 'interpretation':
                                         $icon = 'fas fa-paint-brush text-success';
-                                        $text = "<strong>" . htmlspecialchars($notification['sender_name']) . "</strong> submitted an interpretation for your challenge: <strong>" . htmlspecialchars($notification['challenge_name']) . "</strong>";
+                                        $text = "<strong>" . htmlspecialchars($notification['sender_name']) . "</strong> submitted an interpretation for your challenge: G" . htmlspecialchars($notification['challenge_name']) . "</strong>";
                                         break;
+
+                                    // NEW CASE for interpretation likes
+                                    case 'interpretation_like':
+                                        $icon = 'fas fa-heart text-danger';
+                                        $text = "<strong>" . htmlspecialchars($notification['sender_name']) . "</strong> liked your interpretation on the challenge: <strong>" . htmlspecialchars($notification['challenge_name']) . "</strong>";
+                                        break;
+
                                     case 'challenge_update':
                                         $icon = 'fas fa-info-circle text-info';
                                         $text = "The challenge <strong>" . htmlspecialchars($notification['challenge_name']) . "</strong> has been updated by the author.";
@@ -119,7 +154,7 @@ function time_ago($datetime) {
                                 }
                                 ?>
                                 <div class="list-group-item notification-item <?php echo $unreadClass; ?> p-3">
-                                    <a href="mark_notifications_read.php?notification_id=<?php echo $notification['notification_id']; ?>&destination=<?php echo urlencode('challengepage.php?id=' . $notification['target_id']); ?>" class="d-flex align-items-center">
+                                    <a href="mark_notifications_read.php?notification_id=<?php echo $notification['notification_id']; ?>&destination=<?php echo urlencode('challengepage.php?id=' . $link_challenge_id); ?>" class="d-flex align-items-center">
                                         <i class="<?php echo $icon; ?> fa-lg me-3" style="width: 20px;"></i>
                                         <div class="flex-grow-1">
                                             <div class="fw-semibold"><?php echo $text; ?></div>
@@ -140,7 +175,7 @@ function time_ago($datetime) {
             </div>
         </div>
     </div>
-    
+
     <div id="message-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -178,12 +213,12 @@ function time_ago($datetime) {
 
             // Handle "Mark All as Read" button
             const markAllReadBtn = document.getElementById('markAllReadBtn');
-            if(markAllReadBtn) {
+            if (markAllReadBtn) {
                 markAllReadBtn.addEventListener('click', () => {
                     document.getElementById('markReadForm').submit();
                 });
             }
-            
+
             // Handle "Delete All" button
             const deleteAllBtn = document.getElementById('deleteAllBtn');
             if (deleteAllBtn) {
@@ -210,4 +245,5 @@ function time_ago($datetime) {
         });
     </script>
 </body>
+
 </html>

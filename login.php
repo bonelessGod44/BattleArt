@@ -1,22 +1,15 @@
 <?php
 // Include the database configuration and auth check files
-require_once "config.php";
+session_start();
+require_once "config.php"; // This must define the $mysqli object
 require_once "auth_check.php";
 
-// If the user is already logged in, redirect to the profile page
-if (isLoggedIn()) {
-    header("location: profile.php");
-    exit;
-}
-
-// Define variables and initialize with empty values
 $email = $password = "";
 $error_message = "";
+$is_banned = false; // Flag to trigger the modal
 
-// Processing form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // Validate email and password
     if (empty(trim($_POST["email"]))) {
         $error_message = "Please enter your email.";
     } else {
@@ -29,122 +22,110 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $password = trim($_POST["password"]);
     }
 
-    // If no validation errors, proceed to check credentials
     if (empty($error_message)) {
-        // Prepare a select statement using your correct column names
-        $sql = "SELECT user_id, user_email, user_password, user_type, user_userName FROM users WHERE user_email = ?";
+
+        // MODIFIED SQL: Fetch account_status
+        $sql = "SELECT user_id, user_email, user_password, user_type, user_userName, user_profile_pic, account_status
+                FROM users
+                WHERE user_email = ?";
 
         if ($stmt = $mysqli->prepare($sql)) {
-            // Bind variables to the prepared statement as parameters
             $stmt->bind_param("s", $param_email);
             $param_email = $email;
 
-            // Attempt to execute the prepared statement
             if ($stmt->execute()) {
                 $stmt->store_result();
 
-                // Check if email exists, if yes then verify password
                 if ($stmt->num_rows == 1) {
-                    $stmt->bind_result($id, $email_from_db, $hashed_password, $user_type, $username);
+                    // MODIFIED BIND: Add $account_status
+                    $stmt->bind_result($id, $email_from_db, $hashed_password, $user_type, $username, $profile_pic, $account_status);
+
                     if ($stmt->fetch()) {
                         if (password_verify($password, $hashed_password)) {
-                            // Store data in session variables
-                            $_SESSION["loggedin"] = true;
-                            $_SESSION["user_id"] = $id;
-                            $_SESSION["user_email"] = $email_from_db;
-                            $_SESSION["user_type"] = $user_type;
-                            $_SESSION["username"] = $username;
-                            
-                            // Get user's profile picture
-                            $profile_sql = "SELECT user_profile_pic FROM users WHERE user_id = ?";
-                            if ($profile_stmt = $mysqli->prepare($profile_sql)) {
-                                $profile_stmt->bind_param("i", $id);
-                                $profile_stmt->execute();
-                                $profile_result = $profile_stmt->get_result();
-                                if ($profile_row = $profile_result->fetch_assoc()) {
-                                    $_SESSION["profile_pic"] = $profile_row['user_profile_pic'];
-                                }
-                                $profile_stmt->close();
-                            }
-                            // Password is correct, so start a new session
-                            if (session_status() == PHP_SESSION_NONE) {
-                                session_start();
-                            }
 
-                            // Store data in session variables
-                            $_SESSION["user_logged_in"] = true;
-                            $_SESSION["user_email"] = $email_from_db;
-                            $_SESSION["user_id"] = $id;
-                            $_SESSION["user_type"] = $user_type;
-                            $_SESSION["user_userName"] = $username;
-                            $_SESSION["login_time"] = time();
-                            $_SESSION["last_activity"] = time();
-
-                            // Log the login activity
-                            $sql_activity = "INSERT INTO user_activity (user_id, login_time, ip_address, user_agent) VALUES (?, NOW(), ?, ?)";
-                            if ($stmt_activity = $mysqli->prepare($sql_activity)) {
-                                $ip = $_SERVER['REMOTE_ADDR'];
-                                $user_agent = $_SERVER['HTTP_USER_AGENT'];
-                                $stmt_activity->bind_param("iss", $id, $ip, $user_agent);
-                                $stmt_activity->execute();
-                                $stmt_activity->close();
-                            }
-
-                            // Redirect based on user type
-                            if ($user_type === 'admin') {
-                                header("location: admin_dashboard.php");
+                            // *** BAN CHECK ADDED HERE ***
+                            if ($account_status === 'banned') {
+                                $is_banned = true; // Set flag to show modal
+                                $error_message = "Your account has been banned."; // Optional: Set a general error too
                             } else {
-                                header("location: profile.php");
+                                // --- Login Successful (User is not banned) ---
+                                session_regenerate_id(true);
+
+                                $_SESSION["user_logged_in"] = true;
+                                $_SESSION["user_id"] = $id;
+                                $_SESSION["user_email"] = $email_from_db;
+                                $_SESSION["user_type"] = $user_type;
+                                $_SESSION["username"] = $username;
+                                $_SESSION["profile_pic"] = $profile_pic;
+                                $_SESSION["login_time"] = time();
+                                $_SESSION["last_activity"] = time();
+
+                                $mysqli->query("UPDATE users SET last_seen = NOW() WHERE user_id = $id");
+
+                                if (!empty($_POST['rememberMe'])) {
+                                    setcookie('remember_user', $email, time() + (86400 * 30), "/");
+                                } else {
+                                    setcookie('remember_user', '', time() - 3600, "/");
+                                }
+
+                                if (strtolower($user_type) == 'admin') {
+                                    header("location: admin_dashboard.php");
+                                } else {
+                                    if (isset($_SESSION['redirect_after_login'])) {
+                                        $redirect_url = $_SESSION['redirect_after_login'];
+                                        unset($_SESSION['redirect_after_login']);
+                                        header('Location: ' . $redirect_url);
+                                    } else {
+                                        header("location: profile.php");
+                                    }
+                                }
+                                exit();
+                                // --- End Successful Login ---
                             }
-                            exit();
                         } else {
-                            // Password is not valid
                             $error_message = "Invalid email or password.";
                         }
                     }
                 } else {
-                    // Email doesn't exist
                     $error_message = "Invalid email or password.";
                 }
             } else {
                 $error_message = "Oops! Something went wrong. Please try again later.";
             }
-            // Close statement
             $stmt->close();
         }
     }
-    // Close connection
-    $mysqli->close();
+    // Do not close $mysqli here
 }
 
-// Check for remember me cookie
 $remembered_email = $_COOKIE['remember_user'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BattleArt - Login</title>
-    <!-- bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="container-fluid vh-100">
         <div class="row h-100 justify-content-center align-items-center">
             <div class="col-12 col-sm-8 col-md-6 col-lg-4">
                 <div class="card shadow-lg border-0">
                     <div class="card-body p-5">
-                        
+
                         <div class="text-center mb-4">
                             <h1 class="brand-title fw-bold text-primary mb-2">BattleArt</h1>
                             <p class="subtitle text-muted">Sign in to join art battles & reimagine originals</p>
                         </div>
 
-                        <!-- Display error or success messages -->
-                        <?php if (!empty($error_message)): ?>
+                        <?php // Keep general error message display, but hide if it's the ban message
+                        if (!empty($error_message) && !$is_banned) : ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                 <?php echo htmlspecialchars($error_message); ?>
@@ -152,55 +133,33 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                             </div>
                         <?php endif; ?>
 
-                        <!-- login form -->
                         <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                            <!-- email field -->
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email address</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
                                         <i class="bi bi-envelope" aria-hidden="true"></i>
                                     </span>
-                                    <input type="email" 
-                                           class="form-control" 
-                                           id="email" 
-                                           name="email"
-                                           placeholder="Enter your email"
-                                           value="<?php echo htmlspecialchars($remembered_email); ?>"
-                                           required>
+                                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" value="<?php echo htmlspecialchars($remembered_email); ?>" required>
                                 </div>
                             </div>
 
-                            <!-- password field -->
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
                                         <i class="bi bi-lock" aria-hidden="true"></i>
                                     </span>
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="password" 
-                                           name="password"
-                                           placeholder="Enter your password"
-                                           required>
-                                    <button class="btn btn-outline-secondary" 
-                                            type="button" 
-                                            id="togglePassword"
-                                            onclick="togglePasswordVisibility()">
+                                    <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()">
                                         <i class="bi bi-eye" id="toggleIcon"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- remember me & forgot password -->
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" 
-                                           type="checkbox" 
-                                           id="rememberMe" 
-                                           name="rememberMe"
-                                           <?php echo !empty($remembered_email) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="rememberMe" name="rememberMe" <?php echo !empty($remembered_email) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="rememberMe">
                                         Remember me
                                     </label>
@@ -210,7 +169,6 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                                 </a>
                             </div>
 
-                            <!-- login button -->
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>
@@ -218,9 +176,8 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                                 </button>
                             </div>
 
-                            <!-- register link -->
                             <div class="text-center">
-                                <p class="mb-0">Don't have an account? 
+                                <p class="mb-0">Don't have an account?
                                     <a href="./register.php" class="signup-link">
                                         Sign up here
                                     </a>
@@ -229,8 +186,6 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                         </form>
                     </div>
                 </div>
-
-                <!-- additional links -->
                 <div class="text-center mt-3">
                     <a href="./index.php" class="back-home-link">
                         <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
@@ -241,14 +196,32 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
         </div>
     </div>
 
-    <!-- bootstrap 5 JS bundle -->
+    <!-- ADDED: Banned User Modal -->
+    <div class="modal fade" id="bannedModal" tabindex="-1" aria-labelledby="bannedModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="bannedModalLabel"><i class="bi bi-slash-circle-fill me-2"></i>Account Banned</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Your account has been banned due to a violation of our terms of service.</p>
+                    <p>If you believe this is an error, please contact support for assistance.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="mailto:support@battleart.com" class="btn btn-primary">Contact Support</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Banned User Modal -->
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script>
         function togglePasswordVisibility() {
             const passwordField = document.getElementById('password');
             const toggleIcon = document.getElementById('toggleIcon');
-            
             if (passwordField.type === 'password') {
                 passwordField.type = 'text';
                 toggleIcon.className = 'bi bi-eye-slash';
@@ -257,6 +230,15 @@ $remembered_email = $_COOKIE['remember_user'] ?? '';
                 toggleIcon.className = 'bi bi-eye';
             }
         }
+
+        // ADDED: JavaScript to show the modal if the user is banned
+        <?php if ($is_banned): ?>
+            document.addEventListener('DOMContentLoaded', (event) => {
+                var bannedModal = new bootstrap.Modal(document.getElementById('bannedModal'));
+                bannedModal.show();
+            });
+        <?php endif; ?>
     </script>
 </body>
+
 </html>
