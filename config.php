@@ -1,11 +1,11 @@
 <?php
-// Database credentials. Server with default setting (user 'root' with no password)
+// Database configuration
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', '');
 define('DB_NAME', 'battleart');
 
-/* Attempt to connect to MySQL database */
+// Create connection
 $mysqli = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 
 if ($mysqli->connect_error) {

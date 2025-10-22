@@ -47,6 +47,7 @@ if ($result = $mysqli->query($sql)) {
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,6 +67,7 @@ if ($result = $mysqli->query($sql)) {
             --text-dark: #333;
         }
 
+
         body {
             background-color: var(--secondary-bg);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -78,7 +80,9 @@ if ($result = $mysqli->query($sql)) {
             padding: 2.5rem;
             border-radius: 20px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
         }
+
 
         h2 {
             color: var(--primary-bg);
@@ -87,6 +91,7 @@ if ($result = $mysqli->query($sql)) {
             text-align: center;
         }
 
+
         .filter-section {
             display: flex;
             justify-content: flex-start;
@@ -94,10 +99,12 @@ if ($result = $mysqli->query($sql)) {
             margin-bottom: 1.5rem;
         }
 
+
         .table-responsive {
             border-radius: 12px;
             overflow: hidden;
         }
+
 
         .table thead th {
             background-color: var(--light-purple);
@@ -107,24 +114,29 @@ if ($result = $mysqli->query($sql)) {
             font-weight: 600;
         }
 
+
         .table tbody td {
             text-align: center;
             vertical-align: middle;
             color: var(--text-dark);
         }
 
+
         .table tbody tr:hover {
             background-color: #f9f9ff;
         }
+
 
         .btn-danger {
             border-radius: 20px;
             font-size: 0.85rem;
         }
 
+
         .search-bar {
             width: 280px;
         }
+
 
         @media (max-width: 768px) {
             .dashboard-container {
@@ -132,13 +144,23 @@ if ($result = $mysqli->query($sql)) {
                 padding: 1.5rem;
             }
 
+
             .search-bar {
                 width: 100%;
                 margin-bottom: 1rem;
             }
         }
+
+        .navbar img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+        }
     </style>
 </head>
+
 
 <body>
     <?php require 'partials/navbar.php'; ?>
@@ -274,5 +296,6 @@ if ($result = $mysqli->query($sql)) {
             });
         </script>
 </body>
+
 
 </html>

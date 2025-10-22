@@ -100,6 +100,7 @@ if ($stmt = $mysqli->prepare($sql)) {
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -129,6 +130,7 @@ if ($stmt = $mysqli->prepare($sql)) {
             margin-bottom: 2rem;
         }
 
+
         .stat-card {
             background: var(--light-purple);
             padding: 1.5rem;
@@ -136,20 +138,24 @@ if ($stmt = $mysqli->prepare($sql)) {
             text-align: center;
         }
 
+
         .stat-card h3 {
             font-size: 2rem;
             color: var(--primary-bg);
             margin-bottom: 0.5rem;
         }
 
+
         .activity-item {
             padding: 1rem;
             border-bottom: 1px solid #eee;
         }
 
+
         .activity-item:last-child {
             border-bottom: none;
         }
+
 
         .status-badge {
             padding: 0.5rem 1rem;
@@ -166,8 +172,19 @@ if ($stmt = $mysqli->prepare($sql)) {
             background-color: #dc3545;
             color: white;
         }
+
+        .status-active {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-banned {
+            background-color: #dc3545;
+            color: white;
+        }
     </style>
 </head>
+
 
 <body>
     <?php require 'partials/navbar.php'; ?>
@@ -250,6 +267,7 @@ if ($stmt = $mysqli->prepare($sql)) {
                                                         echo $activity['type'] === 'artwork' ? 'palette' : ($activity['type'] === 'interpretation' ? 'brush' : 'chat-dots');
                                                         ?> me-2 fs-4" style="color: var(--primary-bg);"></i>
                                         <div>
+                                            <strong><?php echo ucfirst($activity['type']); ?></strong>:
                                             <strong><?php echo ucfirst($activity['type']); ?></strong>:
                                             <?php echo htmlspecialchars(mb_strimwidth($activity['title'], 0, 100, "...")); ?>
                                             <br>

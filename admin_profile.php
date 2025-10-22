@@ -825,3 +825,4 @@ $bannerPicPath = !empty($user['user_banner_pic']) ? 'assets/uploads/' . htmlspec
 </body>
 
 </html>
+<?php $mysqli->close(); ?>

@@ -45,6 +45,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -64,6 +65,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             --text-dark: #333;
         }
 
+
         body {
             background-color: var(--secondary-bg);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -79,7 +81,9 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             padding: 2.5rem;
             border-radius: 20px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
         }
+
 
         h2 {
             color: var(--primary-bg);
@@ -89,14 +93,17 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             font-size: 2rem;
         }
 
+
         .table-responsive {
             border-radius: 12px;
             overflow: hidden;
         }
 
+
         .table {
             margin-bottom: 0;
         }
+
 
         .table thead th {
             background-color: var(--light-purple);
@@ -108,6 +115,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             vertical-align: middle;
         }
 
+
         .table tbody td {
             vertical-align: middle;
             padding: 1rem;
@@ -115,19 +123,23 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             border-color: #e9ecef;
         }
 
+
         .table tbody tr {
             transition: background-color 0.2s ease;
         }
 
+
         .table tbody tr:hover {
             background-color: #f8f9fa;
         }
+
 
         .avatar-cell {
             display: flex;
             justify-content: center;
             align-items: center;
         }
+
 
         .avatar-img {
             width: 45px;
@@ -137,9 +149,11 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             transition: transform 0.2s ease;
         }
 
+
         .avatar-img:hover {
             transform: scale(1.1);
         }
+
 
         .role-badge {
             display: inline-block;
@@ -149,15 +163,18 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             font-weight: 600;
         }
 
+
         .role-admin {
             background-color: #ff6b6b;
             color: #fff;
         }
 
+
         .role-user {
             background-color: #4ecdc4;
             color: #fff;
         }
+
 
         .btn-primary-custom {
             background-color: var(--primary-bg);
@@ -172,6 +189,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             display: inline-block;
         }
 
+
         .btn-primary-custom:hover {
             background-color: var(--dark-purple-border);
             color: #fff;
@@ -179,10 +197,12 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             box-shadow: 0 4px 8px rgba(140, 118, 236, 0.3);
         }
 
+
         .last-seen {
             font-size: 0.9rem;
             color: #666;
         }
+
 
         .stats-container {
             display: flex;
@@ -190,6 +210,7 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             margin-bottom: 2rem;
             flex-wrap: wrap;
         }
+
 
         .stat-card {
             flex: 1;
@@ -201,11 +222,13 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             box-shadow: 0 4px 12px rgba(140, 118, 236, 0.2);
         }
 
+
         .stat-card h4 {
             font-size: 2rem;
             margin: 0;
             font-weight: bold;
         }
+
 
         .stat-card p {
             margin: 0.5rem 0 0 0;
@@ -213,19 +236,23 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
             font-size: 0.95rem;
         }
 
+
         @media (max-width: 768px) {
             .dashboard-container {
                 margin: 1.5rem;
                 padding: 1.5rem;
             }
 
+
             .stats-container {
                 flex-direction: column;
             }
 
+
             .table {
                 font-size: 0.85rem;
             }
+
 
             .table thead th,
             .table tbody td {
@@ -235,11 +262,13 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
     </style>
 </head>
 
+
 <body>
     <?php require 'partials/navbar.php'; ?>
 
     <div class="dashboard-container">
         <h2><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h2>
+
 
         <!-- Statistics Cards -->
         <div class="stats-container">
@@ -293,7 +322,8 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                                     <strong><?php echo htmlspecialchars($user['user_userName']); ?></strong>
                                 </td>
                                 <td>
-                                    <span class="role-badge <?php echo $user['user_type'] === 'admin' ? 'role-admin' : 'role-user'; ?>">
+                                    <span
+                                        class="role-badge <?php echo $user['user_type'] === 'admin' ? 'role-admin' : 'role-user'; ?>">
                                         <?php echo ucfirst(htmlspecialchars($user['user_type'])); ?>
                                     </span>
                                 </td>
@@ -306,6 +336,8 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
                                     </span>
                                 </td>
                                 <td>
+                                    <a href="admin_manage_user.php?id=<?php echo $user['user_id']; ?>"
+                                        class="btn btn-primary-custom">
                                     <a href="admin_manage_user.php?id=<?php echo $user['user_id']; ?>"
                                         class="btn btn-primary-custom">
                                         <i class="bi bi-eye me-1"></i>View
@@ -321,5 +353,6 @@ $authorAvatarPath = !empty($challenge['user_profile_pic'])
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 
 </html>
